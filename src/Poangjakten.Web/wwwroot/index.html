@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101828">
+  <title>Poängjakten</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <p class="eyebrow">50-årsfest</p>
+      <h1>Poängjakten</h1>
+      <p class="intro">Appen är ansluten till servern när hälsningen visas nedan.</p>
+    </section>
+
+    <section class="tile" aria-live="polite">
+      <span class="tile-icon" aria-hidden="true">●</span>
+      <div>
+        <p class="tile-label">Backend säger</p>
+        <p id="message" class="message">Kontaktar servern…</p>
+      </div>
+    </section>
+  </main>
+  <script src="/app.js" defer></script>
+</body>
+</html>
+
