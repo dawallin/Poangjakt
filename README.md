@@ -17,6 +17,10 @@ utvecklas eller bytas utan att resten av appen behöver skrivas om.
 - `GET /api/admin/participants` – listar deltagare för administration (testläge)
 - `DELETE /api/admin/participants/{id}` – tar bort en deltagare ur minne och lagring (testläge)
 - `/api/admin-session` – skapar, kontrollerar och avslutar en serverlagrad adminsession
+
+Det vanliga namnfältet används även för admininloggning. Om värdet matchar
+`Admin__Secret` startas en adminsession och `Admin__DisplayName` visas; annars
+registreras en vanlig deltagare.
 - `/health` – health check för Azure App Service
 - `POST /health/storage` – skriver, läser och raderar testdata i Table och Blob Storage
 

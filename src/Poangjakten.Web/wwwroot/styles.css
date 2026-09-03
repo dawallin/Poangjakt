@@ -183,8 +183,6 @@ button:disabled { opacity: .65; cursor: wait; }
   text-decoration: underline;
 }
 
-.text-button.compact { margin-top: 0; }
-
 .participant-list { display: grid; gap: .65rem; }
 
 .participant-row {

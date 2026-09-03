@@ -10,9 +10,6 @@ const views = {
 const registrationForm = document.querySelector("#registration-form");
 const displayNameInput = document.querySelector("#display-name");
 const registrationError = document.querySelector("#registration-error");
-const adminLoginForm = document.querySelector("#admin-login-form");
-const adminSecretInput = document.querySelector("#admin-secret");
-const adminLoginError = document.querySelector("#admin-login-error");
 const welcomeHeading = document.querySelector("#welcome-heading");
 const score = document.querySelector("#score");
 const scoreBadge = document.querySelector("#score-badge");
@@ -79,6 +76,14 @@ registrationForm.addEventListener("submit", async event => {
   const submitButton = registrationForm.querySelector("button[type=submit]");
   submitButton.disabled = true;
   try {
+    const adminSession = await api.signInAdmin(displayNameInput.value);
+    if (adminSession) {
+      localStorage.removeItem(participantKey);
+      registrationForm.reset();
+      showAdmin(adminSession);
+      return;
+    }
+
     const participant = await api.registerParticipant(displayNameInput.value);
     localStorage.setItem(participantKey, participant.id);
     showParticipant(participant);
@@ -90,52 +95,10 @@ registrationForm.addEventListener("submit", async event => {
   }
 });
 
-document.querySelector("#show-admin-login").addEventListener("click", () => {
-  registrationForm.hidden = true;
-  document.querySelector("#show-admin-login").hidden = true;
-  adminLoginForm.hidden = false;
-  adminSecretInput.focus();
-});
-
-document.querySelector("#cancel-admin-login").addEventListener("click", () => {
-  adminLoginForm.reset();
-  adminLoginError.hidden = true;
-  adminLoginForm.hidden = true;
-  registrationForm.hidden = false;
-  document.querySelector("#show-admin-login").hidden = false;
-  displayNameInput.focus();
-});
-
-adminLoginForm.addEventListener("submit", async event => {
-  event.preventDefault();
-  adminLoginError.hidden = true;
-  const submitButton = adminLoginForm.querySelector("button[type=submit]");
-  submitButton.disabled = true;
-  try {
-    const session = await api.signInAdmin(adminSecretInput.value);
-    if (!session) {
-      adminLoginError.textContent = "Fel adminhemlighet.";
-      adminLoginError.hidden = false;
-      return;
-    }
-    localStorage.removeItem(participantKey);
-    adminLoginForm.reset();
-    showAdmin(session);
-  } catch (error) {
-    adminLoginError.textContent = error.message;
-    adminLoginError.hidden = false;
-  } finally {
-    submitButton.disabled = false;
-  }
-});
-
 changeParticipantButton.addEventListener("click", async () => {
   try { await api.signOutAdmin(); } catch { /* The local view can still be reset. */ }
   localStorage.removeItem(participantKey);
   registrationForm.reset();
-  registrationForm.hidden = false;
-  adminLoginForm.hidden = true;
-  document.querySelector("#show-admin-login").hidden = false;
   showView("registration");
   displayNameInput.focus();
 });
