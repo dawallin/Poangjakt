@@ -16,7 +16,6 @@ env:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    environment: production
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -41,4 +40,3 @@ jobs:
         with:
           app-name: ${{ vars.AZURE_WEBAPP_NAME }}
           package: ./publish
-
