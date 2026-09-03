@@ -22,8 +22,20 @@
         <p id="message" class="message">Kontaktar servern…</p>
       </div>
     </section>
+
+    <section class="tile storage-tile" aria-live="polite">
+      <span class="tile-icon" aria-hidden="true">◆</span>
+      <div class="storage-content">
+        <p class="tile-label">Azure Storage</p>
+        <p id="storage-message" class="storage-message">Inte testad ännu</p>
+        <div class="checks" aria-label="Lagringsstatus">
+          <span id="table-status">○ Table Storage</span>
+          <span id="blob-status">○ Blob Storage</span>
+        </div>
+        <button id="test-storage" type="button">Testa lagringen</button>
+      </div>
+    </section>
   </main>
   <script src="/app.js" defer></script>
 </body>
 </html>
-

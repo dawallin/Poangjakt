@@ -56,6 +56,41 @@ h1 {
   box-shadow: 0 1.5rem 4rem rgba(0, 0, 0, .28);
 }
 
+.storage-tile {
+  margin-top: 1rem;
+  background: #2563eb;
+}
+
+.storage-content { width: 100%; }
+
+.storage-message {
+  margin: 0 0 1rem;
+  font-size: 1.35rem;
+  font-weight: 750;
+}
+
+.checks {
+  display: grid;
+  gap: .45rem;
+  margin-bottom: 1.25rem;
+  color: #dbeafe;
+  font-weight: 650;
+}
+
+button {
+  min-height: 2.9rem;
+  padding: .7rem 1rem;
+  border: 0;
+  border-radius: .35rem;
+  background: #eff6ff;
+  color: #1e3a8a;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+button:disabled { opacity: .65; }
+
 .tile-icon {
   margin-top: .2rem;
   color: #fff7ed;
@@ -79,4 +114,3 @@ h1 {
 }
 
 .message.error { color: #431407; }
-

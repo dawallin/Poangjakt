@@ -7,6 +7,7 @@ Mobil webbapp för en 50-årsfest. Den första versionen består av en ASP.NET C
 - `/` – mobilanpassad frontend
 - `/api/hello` – enkelt API-anrop som visas i frontend
 - `/health` – health check för Azure App Service
+- `POST /health/storage` – skriver, läser och raderar testdata i Table och Blob Storage
 
 ## Azure
 
