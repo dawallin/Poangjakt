@@ -1,12 +1,18 @@
 using Azure.Core;
 using Azure.Identity;
+using Poangjakten.Web.Administration;
+using Poangjakten.Web.Participants;
 using Poangjakten.Web.Storage;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.Configure<StorageOptions>(builder.Configuration.GetSection("Storage"));
 builder.Services.AddSingleton<TokenCredential, DefaultAzureCredential>();
+builder.Services.AddSingleton<AzureStorageClients>();
 builder.Services.AddSingleton<StorageDiagnostics>();
+builder.Services.AddSingleton<IParticipantRepository, TableParticipantRepository>();
+builder.Services.AddSingleton<ParticipantRegistry>();
+builder.Services.AddHostedService(serviceProvider => serviceProvider.GetRequiredService<ParticipantRegistry>());
 
 var app = builder.Build();
 
@@ -27,6 +33,9 @@ app.MapPost("/health/storage", async (StorageDiagnostics diagnostics, Cancellati
     var result = await diagnostics.RunAsync(cancellationToken);
     return result.IsHealthy ? Results.Ok(result) : Results.Json(result, statusCode: 503);
 });
+
+app.MapParticipantEndpoints();
+app.MapAdministrationEndpoints();
 
 app.MapFallbackToFile("index.html");
 

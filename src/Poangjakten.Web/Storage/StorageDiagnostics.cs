@@ -1,17 +1,13 @@
 using Azure;
-using Azure.Core;
 using Azure.Data.Tables;
 using Azure.Storage.Blobs;
-using Microsoft.Extensions.Options;
 
 namespace Poangjakten.Web.Storage;
 
 public sealed class StorageDiagnostics(
-    IOptions<StorageOptions> options,
-    TokenCredential credential,
+    AzureStorageClients storage,
     ILogger<StorageDiagnostics> logger)
 {
-    private readonly StorageOptions _options = options.Value;
     private readonly SemaphoreSlim _lock = new(1, 1);
     private StorageTestResult? _successfulResult;
 
@@ -28,12 +24,6 @@ public sealed class StorageDiagnostics(
             if (_successfulResult is not null)
             {
                 return _successfulResult with { Cached = true };
-            }
-
-            var configurationError = ValidateConfiguration();
-            if (configurationError is not null)
-            {
-                return new StorageTestResult(false, false, false, false, configurationError, DateTimeOffset.UtcNow);
             }
 
             var tableTask = TestTableAsync(cancellationToken);
@@ -63,21 +53,6 @@ public sealed class StorageDiagnostics(
         }
     }
 
-    private string? ValidateConfiguration()
-    {
-        if (string.IsNullOrWhiteSpace(_options.AccountName))
-        {
-            return "Storage__AccountName saknas i App Service-konfigurationen.";
-        }
-
-        if (string.IsNullOrWhiteSpace(_options.BlobContainerName))
-        {
-            return "Storage__BlobContainerName saknas i App Service-konfigurationen.";
-        }
-
-        return null;
-    }
-
     private async Task<ComponentResult> TestTableAsync(CancellationToken cancellationToken)
     {
         var partitionKey = "storage-diagnostic";
@@ -86,10 +61,7 @@ public sealed class StorageDiagnostics(
 
         try
         {
-            var service = new TableServiceClient(
-                new Uri($"https://{_options.AccountName}.table.core.windows.net"),
-                credential);
-            table = service.GetTableClient(_options.PlayersTableName);
+            table = storage.PlayersTable();
             await table.CreateIfNotExistsAsync(cancellationToken);
 
             var entity = new TableEntity(partitionKey, rowKey)
@@ -135,9 +107,7 @@ public sealed class StorageDiagnostics(
 
         try
         {
-            var container = new BlobContainerClient(
-                new Uri($"https://{_options.AccountName}.blob.core.windows.net/{_options.BlobContainerName}"),
-                credential);
+            var container = storage.PhotoContainer();
             await container.GetPropertiesAsync(cancellationToken: cancellationToken);
 
             blob = container.GetBlobClient(blobName);

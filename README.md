@@ -2,10 +2,20 @@
 
 Mobil webbapp för en 50-årsfest. Den första versionen består av en ASP.NET Core-backend som även serverar frontend-filerna.
 
+Deltagarregistret laddas från Azure Table Storage när processen startar. Därefter sker
+alla läsningar från minnet medan nya och ändrade deltagare skrivs igenom till Table
+Storage. Persistens, domänlogik och HTTP-endpoints är separerade så att delarna kan
+utvecklas eller bytas utan att resten av appen behöver skrivas om.
+
 ## Endpoints
 
 - `/` – mobilanpassad frontend
 - `/api/hello` – enkelt API-anrop som visas i frontend
+- `POST /api/participants/register` – registrerar eller återupptar en deltagare via namn
+- `GET /api/participants/{id}` – hämtar en deltagare från minnesregistret
+- `GET /api/participants` – listar deltagarna i poängordning
+- `GET /api/admin/participants` – listar deltagare för administration (testläge)
+- `DELETE /api/admin/participants/{id}` – tar bort en deltagare ur minne och lagring (testläge)
 - `/health` – health check för Azure App Service
 - `POST /health/storage` – skriver, läser och raderar testdata i Table och Blob Storage
 
