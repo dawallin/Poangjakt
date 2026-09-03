@@ -13,6 +13,9 @@ builder.Services.AddSingleton<StorageDiagnostics>();
 builder.Services.AddSingleton<IParticipantRepository, TableParticipantRepository>();
 builder.Services.AddSingleton<ParticipantRegistry>();
 builder.Services.AddHostedService(serviceProvider => serviceProvider.GetRequiredService<ParticipantRegistry>());
+builder.Services.Configure<AdminOptions>(builder.Configuration.GetSection("Admin"));
+builder.Services.AddSingleton<AdminSessionService>();
+builder.Services.AddScoped<AdminEndpointFilter>();
 
 var app = builder.Build();
 
@@ -32,7 +35,7 @@ app.MapPost("/health/storage", async (StorageDiagnostics diagnostics, Cancellati
 {
     var result = await diagnostics.RunAsync(cancellationToken);
     return result.IsHealthy ? Results.Ok(result) : Results.Json(result, statusCode: 503);
-});
+}).AddEndpointFilter<AdminEndpointFilter>();
 
 app.MapParticipantEndpoints();
 app.MapAdministrationEndpoints();

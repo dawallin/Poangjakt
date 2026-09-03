@@ -10,8 +10,12 @@ const views = {
 const registrationForm = document.querySelector("#registration-form");
 const displayNameInput = document.querySelector("#display-name");
 const registrationError = document.querySelector("#registration-error");
+const adminLoginForm = document.querySelector("#admin-login-form");
+const adminSecretInput = document.querySelector("#admin-secret");
+const adminLoginError = document.querySelector("#admin-login-error");
 const welcomeHeading = document.querySelector("#welcome-heading");
 const score = document.querySelector("#score");
+const scoreBadge = document.querySelector("#score-badge");
 const storageMessage = document.querySelector("#storage-message");
 const tableStatus = document.querySelector("#table-status");
 const blobStatus = document.querySelector("#blob-status");
@@ -30,10 +34,29 @@ function showView(name) {
 function showParticipant(participant) {
   welcomeHeading.textContent = `Hej, ${participant.displayName}!`;
   score.textContent = participant.score;
+  scoreBadge.hidden = false;
+  document.querySelectorAll(".admin-only").forEach(element => { element.hidden = true; });
+  showView("dashboard");
+}
+
+function showAdmin(session) {
+  welcomeHeading.textContent = `Hej, ${session.displayName}!`;
+  scoreBadge.hidden = true;
+  document.querySelectorAll(".admin-only").forEach(element => { element.hidden = false; });
   showView("dashboard");
 }
 
 async function restoreParticipant() {
+  try {
+    const adminSession = await api.getAdminSession();
+    if (adminSession) {
+      showAdmin(adminSession);
+      return;
+    }
+  } catch {
+    // A stale admin session must not prevent ordinary participant login.
+  }
+
   const participantId = localStorage.getItem(participantKey);
   if (!participantId) {
     showView("registration");
@@ -67,9 +90,52 @@ registrationForm.addEventListener("submit", async event => {
   }
 });
 
-changeParticipantButton.addEventListener("click", () => {
+document.querySelector("#show-admin-login").addEventListener("click", () => {
+  registrationForm.hidden = true;
+  document.querySelector("#show-admin-login").hidden = true;
+  adminLoginForm.hidden = false;
+  adminSecretInput.focus();
+});
+
+document.querySelector("#cancel-admin-login").addEventListener("click", () => {
+  adminLoginForm.reset();
+  adminLoginError.hidden = true;
+  adminLoginForm.hidden = true;
+  registrationForm.hidden = false;
+  document.querySelector("#show-admin-login").hidden = false;
+  displayNameInput.focus();
+});
+
+adminLoginForm.addEventListener("submit", async event => {
+  event.preventDefault();
+  adminLoginError.hidden = true;
+  const submitButton = adminLoginForm.querySelector("button[type=submit]");
+  submitButton.disabled = true;
+  try {
+    const session = await api.signInAdmin(adminSecretInput.value);
+    if (!session) {
+      adminLoginError.textContent = "Fel adminhemlighet.";
+      adminLoginError.hidden = false;
+      return;
+    }
+    localStorage.removeItem(participantKey);
+    adminLoginForm.reset();
+    showAdmin(session);
+  } catch (error) {
+    adminLoginError.textContent = error.message;
+    adminLoginError.hidden = false;
+  } finally {
+    submitButton.disabled = false;
+  }
+});
+
+changeParticipantButton.addEventListener("click", async () => {
+  try { await api.signOutAdmin(); } catch { /* The local view can still be reset. */ }
   localStorage.removeItem(participantKey);
   registrationForm.reset();
+  registrationForm.hidden = false;
+  adminLoginForm.hidden = true;
+  document.querySelector("#show-admin-login").hidden = false;
   showView("registration");
   displayNameInput.focus();
 });

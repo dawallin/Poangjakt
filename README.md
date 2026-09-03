@@ -16,6 +16,7 @@ utvecklas eller bytas utan att resten av appen behöver skrivas om.
 - `GET /api/participants` – listar deltagarna i poängordning
 - `GET /api/admin/participants` – listar deltagare för administration (testläge)
 - `DELETE /api/admin/participants/{id}` – tar bort en deltagare ur minne och lagring (testläge)
+- `/api/admin-session` – skapar, kontrollerar och avslutar en serverlagrad adminsession
 - `/health` – health check för Azure App Service
 - `POST /health/storage` – skriver, läser och raderar testdata i Table och Blob Storage
 

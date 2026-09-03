@@ -6,6 +6,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 
 body {
   min-height: 100vh;
@@ -181,6 +182,8 @@ button:disabled { opacity: .65; cursor: wait; }
   color: #94a3b8;
   text-decoration: underline;
 }
+
+.text-button.compact { margin-top: 0; }
 
 .participant-list { display: grid; gap: .65rem; }
 

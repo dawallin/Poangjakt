@@ -26,6 +26,14 @@
         <p id="registration-error" class="form-error" role="alert" hidden></p>
         <button type="submit" class="primary-button">Nu kör vi</button>
       </form>
+      <button id="show-admin-login" class="text-button" type="button">Logga in som administratör</button>
+      <form id="admin-login-form" class="registration-card" hidden>
+        <label for="admin-secret">Adminhemlighet</label>
+        <input id="admin-secret" name="secret" type="password" autocomplete="current-password" required>
+        <p id="admin-login-error" class="form-error" role="alert" hidden></p>
+        <button type="submit" class="primary-button">Logga in</button>
+        <button id="cancel-admin-login" type="button" class="text-button compact">Avbryt</button>
+      </form>
     </section>
 
     <section id="dashboard-view" class="view" hidden>
@@ -34,7 +42,7 @@
           <p class="eyebrow">Poängjakten</p>
           <h1 id="welcome-heading" class="welcome-heading">Hej!</h1>
         </div>
-        <div class="score-badge" aria-label="Din poäng">
+        <div id="score-badge" class="score-badge" aria-label="Din poäng">
           <strong id="score">0</strong><span>poäng</span>
         </div>
       </header>
@@ -64,13 +72,13 @@
           <span class="tile-symbol" aria-hidden="true">●</span>
           <span class="menu-title">Mitt bord</span><span class="menu-caption">Inte valt ännu</span>
         </button>
-        <button id="open-admin" class="menu-tile tile-admin tile-wide" type="button">
+        <button id="open-admin" class="menu-tile tile-admin tile-wide admin-only" type="button" hidden>
           <span class="tile-symbol" aria-hidden="true">⚙</span>
           <span class="menu-title">Administrera</span><span class="menu-caption">Synlig under utveckling</span>
         </button>
       </div>
 
-      <details class="system-panel">
+      <details class="system-panel admin-only" hidden>
         <summary>Systemstatus</summary>
         <div class="system-content" aria-live="polite">
           <p id="storage-message" class="storage-message">Lagringen är inte testad i den här sessionen.</p>

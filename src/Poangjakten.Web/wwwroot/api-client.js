@@ -11,6 +11,23 @@ async function request(path, options) {
 }
 
 export const api = {
+  async signInAdmin(secret) {
+    const response = await fetch("/api/admin-session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ secret })
+    });
+    if (response.status === 401) return null;
+    if (!response.ok) throw new Error(`Servern svarade ${response.status}.`);
+    return response.json();
+  },
+  async getAdminSession() {
+    const response = await fetch("/api/admin-session");
+    if (response.status === 401) return null;
+    if (!response.ok) throw new Error(`Servern svarade ${response.status}.`);
+    return response.json();
+  },
+  signOutAdmin() { return request("/api/admin-session", { method: "DELETE" }); },
   registerParticipant(displayName) {
     return request("/api/participants/register", {
       method: "POST",
