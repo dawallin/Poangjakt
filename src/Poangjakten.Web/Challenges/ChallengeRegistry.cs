@@ -27,6 +27,8 @@ public sealed class ChallengeRegistry(
         .ThenBy(challenge => challenge.Description, StringComparer.CurrentCultureIgnoreCase)
         .ToArray();
 
+    public Challenge? Find(string id) => _challenges.GetValueOrDefault(id);
+
     public async Task<ChallengeMutationResult> CreateAsync(
         string? description,
         int points,

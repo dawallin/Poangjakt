@@ -1,4 +1,6 @@
 using Poangjakten.Web.Administration;
+using Poangjakten.Web.Participants;
+using Poangjakten.Web.Scoring;
 
 namespace Poangjakten.Web.Challenges;
 
@@ -8,6 +10,39 @@ public static class ChallengeEndpoints
     {
         routes.MapGet("/api/challenges", (ChallengeRegistry registry) =>
             Results.Ok(registry.List().Select(ChallengeResponse.From)));
+
+        routes.MapGet("/api/participants/{participantId}/challenges", (
+            string participantId,
+            ParticipantRegistry participants,
+            ChallengeRegistry challenges,
+            ChallengeCompletionRegistry completions) =>
+        {
+            if (participants.Find(participantId) is null) return Results.NotFound();
+            var completedIds = completions.CompletedChallengeIds(participantId);
+            return Results.Ok(challenges.List().Select(challenge =>
+                ParticipantChallengeResponse.From(challenge, completedIds.Contains(challenge.Id))));
+        });
+
+        routes.MapPut("/api/participants/{participantId}/challenges/{challengeId}", async (
+            string participantId,
+            string challengeId,
+            SetChallengeCompletionRequest request,
+            ParticipantRegistry participants,
+            ChallengeRegistry challenges,
+            ChallengeCompletionRegistry completions,
+            ScoreService scores,
+            CancellationToken cancellationToken) =>
+        {
+            var participant = participants.Find(participantId);
+            var challenge = challenges.Find(challengeId);
+            if (participant is null || challenge is null) return Results.NotFound();
+
+            await completions.SetAsync(participantId, challengeId, request.IsCompleted, cancellationToken);
+            return Results.Ok(new ChallengeCompletionResponse(
+                challengeId,
+                request.IsCompleted,
+                scores.GetScore(participant)));
+        });
 
         var admin = routes.MapGroup("/api/admin/challenges");
         admin.AddEndpointFilter<AdminEndpointFilter>();
@@ -75,3 +110,12 @@ public sealed record ChallengeResponse(string Id, string Description, int Points
     public static ChallengeResponse From(Challenge challenge) =>
         new(challenge.Id, challenge.Description, challenge.Points);
 }
+
+public sealed record ParticipantChallengeResponse(string Id, string Description, int Points, bool IsCompleted)
+{
+    public static ParticipantChallengeResponse From(Challenge challenge, bool isCompleted) =>
+        new(challenge.Id, challenge.Description, challenge.Points, isCompleted);
+}
+
+public sealed record SetChallengeCompletionRequest(bool IsCompleted);
+public sealed record ChallengeCompletionResponse(string ChallengeId, bool IsCompleted, int Score);

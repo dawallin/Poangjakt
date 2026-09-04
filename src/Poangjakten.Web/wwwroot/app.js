@@ -5,6 +5,7 @@ const views = {
   loading: document.querySelector("#loading-view"),
   registration: document.querySelector("#registration-view"),
   dashboard: document.querySelector("#dashboard-view"),
+  challenges: document.querySelector("#challenges-view"),
   adminUsers: document.querySelector("#admin-users-view"),
   adminChallenges: document.querySelector("#admin-challenges-view")
 };
@@ -14,6 +15,9 @@ const registrationError = document.querySelector("#registration-error");
 const welcomeHeading = document.querySelector("#welcome-heading");
 const score = document.querySelector("#score");
 const scoreBadge = document.querySelector("#score-badge");
+const challengeScore = document.querySelector("#challenge-score");
+const playerChallengeList = document.querySelector("#player-challenge-list");
+const playerChallengeError = document.querySelector("#player-challenge-error");
 const storageMessage = document.querySelector("#storage-message");
 const tableStatus = document.querySelector("#table-status");
 const blobStatus = document.querySelector("#blob-status");
@@ -31,6 +35,7 @@ const saveChallengeButton = document.querySelector("#save-challenge");
 const cancelChallengeEditButton = document.querySelector("#cancel-challenge-edit");
 const featureMessage = document.querySelector("#feature-message");
 let toastTimer;
+let currentParticipantId = null;
 
 function showView(name) {
   Object.entries(views).forEach(([viewName, element]) => { element.hidden = viewName !== name; });
@@ -38,6 +43,7 @@ function showView(name) {
 }
 
 function showParticipant(participant) {
+  currentParticipantId = participant.id;
   welcomeHeading.textContent = `Hej, ${participant.displayName}!`;
   score.textContent = participant.score;
   scoreBadge.hidden = false;
@@ -46,6 +52,7 @@ function showParticipant(participant) {
 }
 
 function showAdmin(session) {
+  currentParticipantId = null;
   welcomeHeading.textContent = `Hej, ${session.displayName}!`;
   scoreBadge.hidden = true;
   document.querySelectorAll(".admin-only").forEach(element => { element.hidden = false; });
@@ -114,12 +121,28 @@ changeParticipantButton.addEventListener("click", async () => {
 
 document.querySelectorAll("[data-feature]").forEach(tile => {
   tile.addEventListener("click", () => {
-    clearTimeout(toastTimer);
-    featureMessage.textContent = "Den här delen öppnar vi i nästa steg.";
-    featureMessage.hidden = false;
-    toastTimer = setTimeout(() => { featureMessage.hidden = true; }, 2600);
+    showToast("Den här delen öppnar vi i nästa steg.");
   });
 });
+
+document.querySelector("#open-challenges").addEventListener("click", async () => {
+  if (!currentParticipantId) {
+    showToast("Admin har ingen egen deltagarpoäng.");
+    return;
+  }
+  showView("challenges");
+  challengeScore.textContent = score.textContent;
+  await loadPlayerChallenges();
+});
+
+document.querySelector("#close-challenges").addEventListener("click", () => showView("dashboard"));
+
+function showToast(message) {
+  clearTimeout(toastTimer);
+  featureMessage.textContent = message;
+  featureMessage.hidden = false;
+  toastTimer = setTimeout(() => { featureMessage.hidden = true; }, 2600);
+}
 
 document.querySelector("#open-admin-users").addEventListener("click", async () => {
   showView("adminUsers");
@@ -145,6 +168,78 @@ async function loadParticipants() {
     participantList.innerHTML = "";
     adminError.textContent = error.message;
     adminError.hidden = false;
+  }
+}
+
+async function loadPlayerChallenges() {
+  playerChallengeList.innerHTML = '<p class="muted">Hämtar uppgifter…</p>';
+  playerChallengeError.hidden = true;
+  try {
+    renderPlayerChallenges(await api.listParticipantChallenges(currentParticipantId));
+  } catch (error) {
+    playerChallengeList.innerHTML = "";
+    playerChallengeError.textContent = error.message;
+    playerChallengeError.hidden = false;
+  }
+}
+
+function renderPlayerChallenges(challenges) {
+  playerChallengeList.replaceChildren();
+  if (challenges.length === 0) {
+    playerChallengeList.innerHTML = '<p class="muted">Inga uppgifter har lagts in ännu.</p>';
+    return;
+  }
+
+  const groups = challenges.reduce((result, challenge) => {
+    const items = result.get(challenge.points) ?? [];
+    items.push(challenge);
+    result.set(challenge.points, items);
+    return result;
+  }, new Map());
+
+  [...groups.entries()].sort(([left], [right]) => left - right).forEach(([points, items]) => {
+    const section = document.createElement("section");
+    const heading = document.createElement("h2");
+    heading.className = "challenge-group-title";
+    heading.textContent = `${points} poäng`;
+    const rows = document.createElement("div");
+    rows.className = "challenge-items";
+
+    items.forEach(challenge => {
+      const row = document.createElement("div");
+      row.className = `completion-row${challenge.isCompleted ? " completed" : ""}`;
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.id = `completion-${challenge.id}`;
+      checkbox.checked = challenge.isCompleted;
+      const label = document.createElement("label");
+      label.htmlFor = checkbox.id;
+      label.textContent = challenge.description;
+      checkbox.addEventListener("change", () => setChallengeCompletion(challenge, checkbox, row));
+      row.append(checkbox, label);
+      rows.append(row);
+    });
+
+    section.append(heading, rows);
+    playerChallengeList.append(section);
+  });
+}
+
+async function setChallengeCompletion(challenge, checkbox, row) {
+  const requestedState = checkbox.checked;
+  checkbox.disabled = true;
+  playerChallengeError.hidden = true;
+  try {
+    const result = await api.setChallengeCompletion(currentParticipantId, challenge.id, requestedState);
+    row.classList.toggle("completed", result.isCompleted);
+    score.textContent = result.score;
+    challengeScore.textContent = result.score;
+  } catch (error) {
+    checkbox.checked = !requestedState;
+    playerChallengeError.textContent = error.message;
+    playerChallengeError.hidden = false;
+  } finally {
+    checkbox.disabled = false;
   }
 }
 

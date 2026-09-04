@@ -38,6 +38,18 @@ export const api = {
     });
   },
   getParticipant(id) { return request(`/api/participants/${encodeURIComponent(id)}`); },
+  listParticipantChallenges(participantId) {
+    return request(`/api/participants/${encodeURIComponent(participantId)}/challenges`);
+  },
+  setChallengeCompletion(participantId, challengeId, isCompleted) {
+    return request(
+      `/api/participants/${encodeURIComponent(participantId)}/challenges/${encodeURIComponent(challengeId)}`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isCompleted })
+      });
+  },
   listParticipants() { return request("/api/admin/participants"); },
   deleteParticipant(id) {
     return request(`/api/admin/participants/${encodeURIComponent(id)}`, { method: "DELETE" });

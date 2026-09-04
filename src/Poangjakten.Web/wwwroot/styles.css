@@ -199,6 +199,7 @@ button:disabled { opacity: .65; cursor: wait; }
 
 .participant-name { margin: 0; font-size: 1.05rem; font-weight: 800; }
 .participant-score { margin: .2rem 0 0; color: #94a3b8; font-size: .82rem; }
+.challenge-page-header { display: flex; gap: 1rem; align-items: flex-start; justify-content: space-between; }
 
 .challenge-form {
   display: grid;
@@ -252,6 +253,27 @@ button:disabled { opacity: .65; cursor: wait; }
   font-size: 1.15rem;
 }
 .icon-button.danger { background: #7f1d1d; }
+
+.completion-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: .9rem;
+  align-items: center;
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: .35rem;
+  background: rgba(15, 29, 51, .82);
+  transition: opacity 120ms ease, background 120ms ease;
+}
+.completion-row.completed { background: rgba(21, 128, 61, .3); }
+.completion-row input {
+  width: 1.55rem;
+  height: 1.55rem;
+  margin: 0;
+  accent-color: #22c55e;
+}
+.completion-row label { line-height: 1.4; cursor: pointer; }
+.completion-row.completed label { text-decoration: line-through; text-decoration-thickness: 1px; color: #cbd5e1; }
 
 .toast {
   position: fixed;

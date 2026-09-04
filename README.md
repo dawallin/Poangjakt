@@ -26,6 +26,10 @@ registreras en vanlig deltagare.
 
 Poänguppgifterna ligger i en egen `challenges`-tabell. De laddas till minnet vid
 uppstart och alla adminändringar skrivs igenom till Table Storage innan minnet ändras.
+
+Varje deltagares utförda uppgifter ligger i `challengecompletions`, partitionerade per
+deltagare. Markeringar kan sättas och tas bort fritt. Totalpoängen beräknas från de
+aktuella uppgiftspoängen, så en adminändring slår igenom utan migrering av lagrade summor.
 - `/health` – health check för Azure App Service
 - `POST /health/storage` – skriver, läser och raderar testdata i Table och Blob Storage
 

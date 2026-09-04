@@ -3,6 +3,7 @@ using Azure.Identity;
 using Poangjakten.Web.Administration;
 using Poangjakten.Web.Challenges;
 using Poangjakten.Web.Participants;
+using Poangjakten.Web.Scoring;
 using Poangjakten.Web.Storage;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,6 +18,10 @@ builder.Services.AddHostedService(serviceProvider => serviceProvider.GetRequired
 builder.Services.AddSingleton<IChallengeRepository, TableChallengeRepository>();
 builder.Services.AddSingleton<ChallengeRegistry>();
 builder.Services.AddHostedService(serviceProvider => serviceProvider.GetRequiredService<ChallengeRegistry>());
+builder.Services.AddSingleton<IChallengeCompletionRepository, TableChallengeCompletionRepository>();
+builder.Services.AddSingleton<ChallengeCompletionRegistry>();
+builder.Services.AddHostedService(serviceProvider => serviceProvider.GetRequiredService<ChallengeCompletionRegistry>());
+builder.Services.AddSingleton<ScoreService>();
 builder.Services.Configure<AdminOptions>(builder.Configuration.GetSection("Admin"));
 builder.Services.AddSingleton<AdminSessionService>();
 builder.Services.AddScoped<AdminEndpointFilter>();

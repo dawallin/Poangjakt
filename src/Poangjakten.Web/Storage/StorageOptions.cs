@@ -6,4 +6,5 @@ public sealed class StorageOptions
     public string BlobContainerName { get; init; } = "";
     public string PlayersTableName { get; init; } = "players";
     public string ChallengesTableName { get; init; } = "challenges";
+    public string ChallengeCompletionsTableName { get; init; } = "challengecompletions";
 }

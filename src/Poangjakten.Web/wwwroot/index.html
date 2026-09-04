@@ -40,9 +40,9 @@
       </header>
 
       <div class="tile-grid" aria-label="Appens funktioner">
-        <button class="menu-tile tile-orange tile-wide" type="button" data-feature="challenges">
+        <button id="open-challenges" class="menu-tile tile-orange tile-wide" type="button">
           <span class="tile-symbol" aria-hidden="true">✓</span>
-          <span class="menu-title">Poängjakt</span><span class="menu-caption">Uppdragen kommer snart</span>
+          <span class="menu-title">Poängjakt</span><span class="menu-caption">Kryssa i det du har gjort</span>
         </button>
         <button class="menu-tile tile-blue" type="button" data-feature="leaderboard">
           <span class="tile-symbol" aria-hidden="true">▲</span>
@@ -85,6 +85,22 @@
         </div>
       </details>
       <button id="change-participant" class="text-button" type="button">Byt deltagare</button>
+    </section>
+
+    <section id="challenges-view" class="view" hidden>
+      <button id="close-challenges" class="back-button" type="button">← Tillbaka</button>
+      <p class="eyebrow">Poängjakten</p>
+      <div class="challenge-page-header">
+        <h1 class="section-heading">Uppgifter</h1>
+        <div class="score-badge" aria-label="Din poäng">
+          <strong id="challenge-score">0</strong><span>poäng</span>
+        </div>
+      </div>
+      <p class="intro">Trust based: kryssa i uppgifterna du har utfört. Du kan alltid ångra dig.</p>
+      <p id="player-challenge-error" class="form-error" role="alert" hidden></p>
+      <div id="player-challenge-list" class="challenge-groups" aria-live="polite">
+        <p class="muted">Hämtar uppgifter…</p>
+      </div>
     </section>
 
     <section id="admin-users-view" class="view" hidden>

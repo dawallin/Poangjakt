@@ -1,4 +1,6 @@
 using Poangjakten.Web.Participants;
+using Poangjakten.Web.Challenges;
+using Poangjakten.Web.Scoring;
 
 namespace Poangjakten.Web.Administration;
 
@@ -42,14 +44,20 @@ public static class AdministrationEndpoints
         var group = routes.MapGroup("/api/admin");
         group.AddEndpointFilter<AdminEndpointFilter>();
 
-        group.MapGet("/participants", (ParticipantRegistry registry) =>
-            Results.Ok(registry.List().Select(ParticipantResponse.From)));
+        group.MapGet("/participants", (ParticipantRegistry registry, ScoreService scores) =>
+            Results.Ok(registry.List()
+                .Select(participant => ParticipantResponse.From(participant, scores.GetScore(participant)))
+                .OrderByDescending(participant => participant.Score)
+                .ThenBy(participant => participant.DisplayName, StringComparer.CurrentCultureIgnoreCase)));
 
         group.MapDelete("/participants/{id}", async (
             string id,
             ParticipantRegistry registry,
+            ChallengeCompletionRegistry completions,
             CancellationToken cancellationToken) =>
         {
+            if (registry.Find(id) is null) return Results.NotFound();
+            await completions.RemoveParticipantAsync(id, cancellationToken);
             var removed = await registry.RemoveAsync(id, cancellationToken);
             return removed ? Results.NoContent() : Results.NotFound();
         });
