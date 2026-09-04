@@ -6,6 +6,7 @@ const views = {
   registration: document.querySelector("#registration-view"),
   dashboard: document.querySelector("#dashboard-view"),
   challenges: document.querySelector("#challenges-view"),
+  photos: document.querySelector("#photos-view"),
   adminUsers: document.querySelector("#admin-users-view"),
   adminChallenges: document.querySelector("#admin-challenges-view")
 };
@@ -34,8 +35,19 @@ const challengeList = document.querySelector("#challenge-list");
 const saveChallengeButton = document.querySelector("#save-challenge");
 const cancelChallengeEditButton = document.querySelector("#cancel-challenge-edit");
 const featureMessage = document.querySelector("#feature-message");
+const photoUploadForm = document.querySelector("#photo-upload-form");
+const photoFiles = document.querySelector("#photo-files");
+const photoSelection = document.querySelector("#photo-selection");
+const uploadPhotosButton = document.querySelector("#upload-photos");
+const photoUploadStatus = document.querySelector("#photo-upload-status");
+const photoGallery = document.querySelector("#photo-gallery");
+const photoError = document.querySelector("#photo-error");
+const photoDialog = document.querySelector("#photo-dialog");
+const dialogPhoto = document.querySelector("#dialog-photo");
+const photoDialogMeta = document.querySelector("#photo-dialog-meta");
 let toastTimer;
 let currentParticipantId = null;
+let currentIsAdmin = false;
 
 function showView(name) {
   Object.entries(views).forEach(([viewName, element]) => { element.hidden = viewName !== name; });
@@ -44,18 +56,22 @@ function showView(name) {
 
 function showParticipant(participant) {
   currentParticipantId = participant.id;
+  currentIsAdmin = false;
   welcomeHeading.textContent = `Hej, ${participant.displayName}!`;
   score.textContent = participant.score;
   scoreBadge.hidden = false;
   document.querySelectorAll(".admin-only").forEach(element => { element.hidden = true; });
+  document.querySelectorAll(".participant-only").forEach(element => { element.hidden = false; });
   showView("dashboard");
 }
 
 function showAdmin(session) {
   currentParticipantId = null;
+  currentIsAdmin = true;
   welcomeHeading.textContent = `Hej, ${session.displayName}!`;
   scoreBadge.hidden = true;
   document.querySelectorAll(".admin-only").forEach(element => { element.hidden = false; });
+  document.querySelectorAll(".participant-only").forEach(element => { element.hidden = true; });
   showView("dashboard");
 }
 
@@ -136,6 +152,244 @@ document.querySelector("#open-challenges").addEventListener("click", async () =>
 });
 
 document.querySelector("#close-challenges").addEventListener("click", () => showView("dashboard"));
+
+document.querySelector("#open-photos").addEventListener("click", async () => {
+  showView("photos");
+  await loadPhotos();
+});
+
+document.querySelector("#close-photos").addEventListener("click", () => showView("dashboard"));
+document.querySelector("#refresh-photos").addEventListener("click", loadPhotos);
+
+photoFiles.addEventListener("change", () => {
+  const count = photoFiles.files?.length ?? 0;
+  photoSelection.textContent = count === 0
+    ? "Du kan välja flera bilder samtidigt."
+    : count === 1 ? "1 bild vald" : `${count} bilder valda`;
+});
+
+photoUploadForm.addEventListener("submit", async event => {
+  event.preventDefault();
+  const files = [...(photoFiles.files ?? [])];
+  photoError.hidden = true;
+  photoUploadStatus.hidden = true;
+
+  if (!currentParticipantId || files.length === 0) {
+    photoError.textContent = "Välj minst en bild att ladda upp.";
+    photoError.hidden = false;
+    return;
+  }
+
+  if (files.length > 10) {
+    photoError.textContent = "Välj högst 10 bilder åt gången.";
+    photoError.hidden = false;
+    return;
+  }
+
+  uploadPhotosButton.disabled = true;
+  photoFiles.disabled = true;
+  let uploaded = 0;
+  let uploadFailure = null;
+
+  try {
+    for (const [index, file] of files.entries()) {
+      photoUploadStatus.textContent = `Förbereder bild ${index + 1} av ${files.length}…`;
+      photoUploadStatus.hidden = false;
+      const compressed = await compressPhoto(file);
+      photoUploadStatus.textContent = `Laddar upp bild ${index + 1} av ${files.length}…`;
+      await api.uploadPhoto(currentParticipantId, compressed.image, compressed.thumbnail);
+      uploaded += 1;
+    }
+
+    photoUploadForm.reset();
+    photoSelection.textContent = "Du kan välja flera bilder samtidigt.";
+    photoUploadStatus.textContent = uploaded === 1
+      ? "Bilden är uppladdad!"
+      : `${uploaded} bilder är uppladdade!`;
+  } catch (error) {
+    uploadFailure = uploaded > 0
+      ? `${uploaded} bilder laddades upp. Nästa bild misslyckades: ${error.message}`
+      : error.message;
+    photoUploadStatus.hidden = true;
+  } finally {
+    uploadPhotosButton.disabled = false;
+    photoFiles.disabled = false;
+    if (uploaded > 0) await loadPhotos();
+    if (uploadFailure) {
+      photoError.textContent = uploadFailure;
+      photoError.hidden = false;
+    }
+  }
+});
+
+async function loadPhotos() {
+  photoGallery.innerHTML = '<p class="muted">Hämtar bilder…</p>';
+  photoError.hidden = true;
+  try {
+    renderPhotos(await api.listPhotos());
+  } catch (error) {
+    photoGallery.replaceChildren();
+    photoError.textContent = error.message;
+    photoError.hidden = false;
+  }
+}
+
+function renderPhotos(photos) {
+  photoGallery.replaceChildren();
+  if (photos.length === 0) {
+    photoGallery.innerHTML = '<p class="muted empty-gallery">Inga bilder ännu. Bli först med att fånga kvällen!</p>';
+    return;
+  }
+
+  photos.forEach(photo => {
+    const card = document.createElement("article");
+    card.className = "photo-card";
+
+    const preview = document.createElement("button");
+    preview.type = "button";
+    preview.className = "photo-preview";
+    preview.setAttribute("aria-label", `Öppna bild tagen av ${photo.photographerDisplayName}`);
+    preview.addEventListener("click", () => openPhoto(photo));
+
+    const image = document.createElement("img");
+    image.src = photo.thumbnailUrl;
+    image.alt = `Bild tagen av ${photo.photographerDisplayName}`;
+    image.loading = "lazy";
+    image.decoding = "async";
+    preview.append(image);
+
+    const details = document.createElement("div");
+    details.className = "photo-details";
+    const photographer = document.createElement("strong");
+    photographer.textContent = photo.photographerDisplayName;
+    const uploadedAt = document.createElement("time");
+    uploadedAt.dateTime = photo.uploadedAt;
+    uploadedAt.textContent = formatPhotoTime(photo.uploadedAt);
+    details.append(photographer, uploadedAt);
+
+    card.append(preview, details);
+
+    if (currentIsAdmin) {
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "photo-delete danger-button";
+      remove.textContent = "Ta bort";
+      remove.setAttribute("aria-label", `Ta bort bild tagen av ${photo.photographerDisplayName}`);
+      remove.addEventListener("click", () => removePhoto(photo, remove));
+      card.append(remove);
+    }
+
+    photoGallery.append(card);
+  });
+}
+
+function openPhoto(photo) {
+  dialogPhoto.src = photo.imageUrl;
+  dialogPhoto.alt = `Bild tagen av ${photo.photographerDisplayName}`;
+  photoDialogMeta.textContent = `${photo.photographerDisplayName} · ${formatPhotoTime(photo.uploadedAt)}`;
+  photoDialog.showModal();
+}
+
+document.querySelector("#close-photo-dialog").addEventListener("click", () => photoDialog.close());
+photoDialog.addEventListener("click", event => {
+  if (event.target === photoDialog) photoDialog.close();
+});
+photoDialog.addEventListener("close", () => {
+  dialogPhoto.removeAttribute("src");
+  dialogPhoto.alt = "";
+});
+
+async function removePhoto(photo, button) {
+  if (!window.confirm(`Ta bort bilden från ${photo.photographerDisplayName}?`)) return;
+  button.disabled = true;
+  photoError.hidden = true;
+  try {
+    await api.deletePhoto(photo.id);
+    await loadPhotos();
+  } catch (error) {
+    photoError.textContent = error.message;
+    photoError.hidden = false;
+    button.disabled = false;
+  }
+}
+
+function formatPhotoTime(value) {
+  return new Intl.DateTimeFormat("sv-SE", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(new Date(value));
+}
+
+async function compressPhoto(file) {
+  if (!file.type.startsWith("image/")) {
+    throw new Error(`${file.name} är inte en bild.`);
+  }
+  if (file.size > 40 * 1024 * 1024) {
+    throw new Error(`${file.name} är större än 40 MB.`);
+  }
+
+  let decoded;
+  try {
+    decoded = await decodePhoto(file);
+    return {
+      image: await renderJpeg(decoded.source, decoded.width, decoded.height, 2048, 0.84),
+      thumbnail: await renderJpeg(decoded.source, decoded.width, decoded.height, 480, 0.74)
+    };
+  } catch {
+    throw new Error(`${file.name} kunde inte läsas. Prova JPEG, PNG eller HEIC från telefonens bildväljare.`);
+  } finally {
+    decoded?.dispose();
+  }
+}
+
+async function decodePhoto(file) {
+  if ("createImageBitmap" in window) {
+    try {
+      const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+      return { source: bitmap, width: bitmap.width, height: bitmap.height, dispose: () => bitmap.close() };
+    } catch {
+      // Fall back to the browser's image element decoder below.
+    }
+  }
+
+  const url = URL.createObjectURL(file);
+  const image = new Image();
+  try {
+    image.src = url;
+    await image.decode();
+    return {
+      source: image,
+      width: image.naturalWidth,
+      height: image.naturalHeight,
+      dispose: () => URL.revokeObjectURL(url)
+    };
+  } catch (error) {
+    URL.revokeObjectURL(url);
+    throw error;
+  }
+}
+
+async function renderJpeg(source, sourceWidth, sourceHeight, maxEdge, quality) {
+  const scale = Math.min(1, maxEdge / Math.max(sourceWidth, sourceHeight));
+  const width = Math.max(1, Math.round(sourceWidth * scale));
+  const height = Math.max(1, Math.round(sourceHeight * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d", { alpha: false });
+  context.fillStyle = "#fff";
+  context.fillRect(0, 0, width, height);
+  context.drawImage(source, 0, 0, width, height);
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      blob => blob ? resolve(blob) : reject(new Error("Bilden kunde inte komprimeras.")),
+      "image/jpeg",
+      quality);
+  });
+}
 
 function showToast(message) {
   clearTimeout(toastTimer);

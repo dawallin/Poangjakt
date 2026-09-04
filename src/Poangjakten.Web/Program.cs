@@ -3,12 +3,15 @@ using Azure.Identity;
 using Poangjakten.Web.Administration;
 using Poangjakten.Web.Challenges;
 using Poangjakten.Web.Participants;
+using Poangjakten.Web.Photos;
 using Poangjakten.Web.Scoring;
 using Poangjakten.Web.Storage;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.Configure<StorageOptions>(builder.Configuration.GetSection("Storage"));
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
+    options.MultipartBodyLengthLimit = 8 * 1024 * 1024);
 builder.Services.AddSingleton<TokenCredential, DefaultAzureCredential>();
 builder.Services.AddSingleton<AzureStorageClients>();
 builder.Services.AddSingleton<StorageDiagnostics>();
@@ -22,6 +25,11 @@ builder.Services.AddSingleton<IChallengeCompletionRepository, TableChallengeComp
 builder.Services.AddSingleton<ChallengeCompletionRegistry>();
 builder.Services.AddHostedService(serviceProvider => serviceProvider.GetRequiredService<ChallengeCompletionRegistry>());
 builder.Services.AddSingleton<ScoreService>();
+builder.Services.AddSingleton<IPhotoRepository, TablePhotoRepository>();
+builder.Services.AddSingleton<PhotoRegistry>();
+builder.Services.AddHostedService(serviceProvider => serviceProvider.GetRequiredService<PhotoRegistry>());
+builder.Services.AddSingleton<PhotoBlobStore>();
+builder.Services.AddSingleton<PhotoService>();
 builder.Services.Configure<AdminOptions>(builder.Configuration.GetSection("Admin"));
 builder.Services.AddSingleton<AdminSessionService>();
 builder.Services.AddScoped<AdminEndpointFilter>();
@@ -49,6 +57,7 @@ app.MapPost("/health/storage", async (StorageDiagnostics diagnostics, Cancellati
 app.MapParticipantEndpoints();
 app.MapAdministrationEndpoints();
 app.MapChallengeEndpoints();
+app.MapPhotoEndpoints();
 
 app.MapFallbackToFile("index.html");
 

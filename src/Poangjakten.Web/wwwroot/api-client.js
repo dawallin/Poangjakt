@@ -72,5 +72,16 @@ export const api = {
   deleteChallenge(id) {
     return request(`/api/admin/challenges/${encodeURIComponent(id)}`, { method: "DELETE" });
   },
+  listPhotos() { return request("/api/photos"); },
+  uploadPhoto(participantId, image, thumbnail) {
+    const form = new FormData();
+    form.append("participantId", participantId);
+    form.append("image", image, "image.jpg");
+    form.append("thumbnail", thumbnail, "thumbnail.jpg");
+    return request("/api/photos", { method: "POST", body: form });
+  },
+  deletePhoto(id) {
+    return request(`/api/admin/photos/${encodeURIComponent(id)}`, { method: "DELETE" });
+  },
   testStorage() { return request("/health/storage", { method: "POST" }); }
 };

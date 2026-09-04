@@ -48,9 +48,9 @@
           <span class="tile-symbol" aria-hidden="true">▲</span>
           <span class="menu-title">Topplista</span><span class="menu-caption">Se ställningen</span>
         </button>
-        <button class="menu-tile tile-purple" type="button" data-feature="photos">
+        <button id="open-photos" class="menu-tile tile-purple" type="button">
           <span class="tile-symbol" aria-hidden="true">▣</span>
-          <span class="menu-title">Bilder</span><span class="menu-caption">Fånga kvällen</span>
+          <span class="menu-title">Bilder</span><span class="menu-caption">Se och dela kvällens bilder</span>
         </button>
         <button class="menu-tile tile-pink tile-wide" type="button" data-feature="daniel">
           <span class="tile-symbol" aria-hidden="true">◆</span>
@@ -85,6 +85,33 @@
         </div>
       </details>
       <button id="change-participant" class="text-button" type="button">Byt deltagare</button>
+    </section>
+
+    <section id="photos-view" class="view" hidden>
+      <button id="close-photos" class="back-button" type="button">← Tillbaka</button>
+      <p class="eyebrow">Kvällens bilder</p>
+      <h1 class="section-heading">Bilder</h1>
+      <p class="intro">Bläddra bland festens bilder och se vem som fångade ögonblicket.</p>
+
+      <form id="photo-upload-form" class="photo-upload-card participant-only">
+        <label for="photo-files" class="photo-picker">
+          <span class="photo-picker-symbol" aria-hidden="true">＋</span>
+          <span>Välj bilder</span>
+        </label>
+        <input id="photo-files" class="visually-hidden" type="file" accept="image/*" multiple>
+        <p id="photo-selection" class="muted">Du kan välja flera bilder samtidigt.</p>
+        <button id="upload-photos" type="submit" class="primary-button">Ladda upp</button>
+        <p id="photo-upload-status" class="upload-status" role="status" hidden></p>
+      </form>
+
+      <div class="gallery-heading">
+        <h2>Alla bilder</h2>
+        <button id="refresh-photos" type="button" class="text-button inline-text-button">Uppdatera</button>
+      </div>
+      <p id="photo-error" class="form-error" role="alert" hidden></p>
+      <div id="photo-gallery" class="photo-gallery" aria-live="polite">
+        <p class="muted">Hämtar bilder…</p>
+      </div>
     </section>
 
     <section id="challenges-view" class="view" hidden>
@@ -140,6 +167,12 @@
 
     <p id="feature-message" class="toast" role="status" hidden></p>
   </main>
+
+  <dialog id="photo-dialog" class="photo-dialog">
+    <button id="close-photo-dialog" class="dialog-close" type="button" aria-label="Stäng bilden">×</button>
+    <img id="dialog-photo" alt="">
+    <p id="photo-dialog-meta"></p>
+  </dialog>
   <script type="module" src="/app.js"></script>
 </body>
 </html>

@@ -19,6 +19,13 @@ utvecklas eller bytas utan att resten av appen behöver skrivas om.
 - `/api/admin-session` – skapar, kontrollerar och avslutar en serverlagrad adminsession
 - `GET /api/challenges` – listar aktiva poänguppgifter för deltagarvyn
 - `/api/admin/challenges` – skapa, ändra och radera poänguppgifter som admin
+- `GET /api/photos` – listar bildmetadata från minnet
+- `POST /api/photos` – laddar upp en klientkomprimerad visningsbild och tumnagel
+- `GET /api/photos/{id}/image` – hämtar visningsbilden från den privata blobcontainern
+- `GET /api/photos/{id}/thumbnail` – hämtar tumnageln
+- `DELETE /api/admin/photos/{id}` – raderar bild, tumnagel och metadata som admin
+- `/health` – health check för Azure App Service
+- `POST /health/storage` – skriver, läser och raderar testdata i Table och Blob Storage
 
 Det vanliga namnfältet används även för admininloggning. Om värdet matchar
 `Admin__Secret` startas en adminsession och `Admin__DisplayName` visas; annars
@@ -30,8 +37,11 @@ uppstart och alla adminändringar skrivs igenom till Table Storage innan minnet 
 Varje deltagares utförda uppgifter ligger i `challengecompletions`, partitionerade per
 deltagare. Markeringar kan sättas och tas bort fritt. Totalpoängen beräknas från de
 aktuella uppgiftspoängen, så en adminändring slår igenom utan migrering av lagrade summor.
-- `/health` – health check för Azure App Service
-- `POST /health/storage` – skriver, läser och raderar testdata i Table och Blob Storage
+
+Bilder komprimeras i webbläsaren till högst 2048 pixlar på längsta sidan och JPEG-kvalitet
+84 %. En separat tumnagel på högst 480 pixlar skapas för galleriet. Båda sparas i den
+privata blobcontainern, medan fotograf, blobnamn och uppladdningstid ligger i tabellen
+`photos` och laddas till minnet när appen startar.
 
 ## Azure
 

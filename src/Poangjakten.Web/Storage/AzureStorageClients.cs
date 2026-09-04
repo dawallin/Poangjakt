@@ -45,6 +45,15 @@ public sealed class AzureStorageClients
         return service.GetTableClient(_options.ChallengeCompletionsTableName);
     }
 
+    public TableClient PhotosTable()
+    {
+        EnsureConfigured(_options.PhotosTableName, nameof(_options.PhotosTableName));
+        var service = new TableServiceClient(
+            new Uri($"https://{AccountName()}.table.core.windows.net"),
+            _credential);
+        return service.GetTableClient(_options.PhotosTableName);
+    }
+
     public BlobContainerClient PhotoContainer()
     {
         EnsureConfigured(_options.BlobContainerName, nameof(_options.BlobContainerName));
