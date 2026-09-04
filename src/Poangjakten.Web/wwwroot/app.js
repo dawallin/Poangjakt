@@ -1,4 +1,5 @@
 import { api } from "./api-client.js";
+import { compressImage, compressPhoto } from "./image-utils.js";
 
 const participantKey = "poangjakten.participantId";
 const views = {
@@ -7,8 +8,10 @@ const views = {
   dashboard: document.querySelector("#dashboard-view"),
   challenges: document.querySelector("#challenges-view"),
   photos: document.querySelector("#photos-view"),
+  songs: document.querySelector("#songs-view"),
   adminUsers: document.querySelector("#admin-users-view"),
-  adminChallenges: document.querySelector("#admin-challenges-view")
+  adminChallenges: document.querySelector("#admin-challenges-view"),
+  adminSongs: document.querySelector("#admin-songs-view")
 };
 const registrationForm = document.querySelector("#registration-form");
 const displayNameInput = document.querySelector("#display-name");
@@ -45,9 +48,27 @@ const photoError = document.querySelector("#photo-error");
 const photoDialog = document.querySelector("#photo-dialog");
 const dialogPhoto = document.querySelector("#dialog-photo");
 const photoDialogMeta = document.querySelector("#photo-dialog-meta");
+const songList = document.querySelector("#song-list");
+const songError = document.querySelector("#song-error");
+const songForm = document.querySelector("#song-form");
+const songId = document.querySelector("#song-id");
+const songTitle = document.querySelector("#song-title");
+const songMelody = document.querySelector("#song-melody");
+const songLyrics = document.querySelector("#song-lyrics");
+const songSortOrder = document.querySelector("#song-sort-order");
+const songImage = document.querySelector("#song-image");
+const songCurrentImage = document.querySelector("#song-current-image");
+const songCurrentImagePreview = document.querySelector("#song-current-image-preview");
+const removeSongImageButton = document.querySelector("#remove-song-image");
+const adminSongError = document.querySelector("#admin-song-error");
+const adminSongStatus = document.querySelector("#admin-song-status");
+const adminSongList = document.querySelector("#admin-song-list");
+const saveSongButton = document.querySelector("#save-song");
+const cancelSongEditButton = document.querySelector("#cancel-song-edit");
 let toastTimer;
 let currentParticipantId = null;
 let currentIsAdmin = false;
+let currentSong = null;
 
 function showView(name) {
   Object.entries(views).forEach(([viewName, element]) => { element.hidden = viewName !== name; });
@@ -160,6 +181,13 @@ document.querySelector("#open-photos").addEventListener("click", async () => {
 
 document.querySelector("#close-photos").addEventListener("click", () => showView("dashboard"));
 document.querySelector("#refresh-photos").addEventListener("click", loadPhotos);
+
+document.querySelector("#open-songs").addEventListener("click", async () => {
+  showView("songs");
+  await loadSongs();
+});
+
+document.querySelector("#close-songs").addEventListener("click", () => showView("dashboard"));
 
 photoFiles.addEventListener("change", () => {
   const count = photoFiles.files?.length ?? 0;
@@ -322,72 +350,77 @@ function formatPhotoTime(value) {
   }).format(new Date(value));
 }
 
-async function compressPhoto(file) {
-  if (!file.type.startsWith("image/")) {
-    throw new Error(`${file.name} är inte en bild.`);
-  }
-  if (file.size > 40 * 1024 * 1024) {
-    throw new Error(`${file.name} är större än 40 MB.`);
-  }
-
-  let decoded;
+async function loadSongs() {
+  songList.innerHTML = '<p class="muted">Hämtar sånger…</p>';
+  songError.hidden = true;
   try {
-    decoded = await decodePhoto(file);
-    return {
-      image: await renderJpeg(decoded.source, decoded.width, decoded.height, 2048, 0.84),
-      thumbnail: await renderJpeg(decoded.source, decoded.width, decoded.height, 480, 0.74)
-    };
-  } catch {
-    throw new Error(`${file.name} kunde inte läsas. Prova JPEG, PNG eller HEIC från telefonens bildväljare.`);
-  } finally {
-    decoded?.dispose();
-  }
-}
-
-async function decodePhoto(file) {
-  if ("createImageBitmap" in window) {
-    try {
-      const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
-      return { source: bitmap, width: bitmap.width, height: bitmap.height, dispose: () => bitmap.close() };
-    } catch {
-      // Fall back to the browser's image element decoder below.
-    }
-  }
-
-  const url = URL.createObjectURL(file);
-  const image = new Image();
-  try {
-    image.src = url;
-    await image.decode();
-    return {
-      source: image,
-      width: image.naturalWidth,
-      height: image.naturalHeight,
-      dispose: () => URL.revokeObjectURL(url)
-    };
+    renderSongs(await api.listSongs());
   } catch (error) {
-    URL.revokeObjectURL(url);
-    throw error;
+    songList.replaceChildren();
+    songError.textContent = error.message;
+    songError.hidden = false;
   }
 }
 
-async function renderJpeg(source, sourceWidth, sourceHeight, maxEdge, quality) {
-  const scale = Math.min(1, maxEdge / Math.max(sourceWidth, sourceHeight));
-  const width = Math.max(1, Math.round(sourceWidth * scale));
-  const height = Math.max(1, Math.round(sourceHeight * scale));
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  const context = canvas.getContext("2d", { alpha: false });
-  context.fillStyle = "#fff";
-  context.fillRect(0, 0, width, height);
-  context.drawImage(source, 0, 0, width, height);
+function renderSongs(songs) {
+  songList.replaceChildren();
+  if (songs.length === 0) {
+    songList.innerHTML = '<p class="muted">Inga sånger har lagts in ännu.</p>';
+    return;
+  }
 
-  return new Promise((resolve, reject) => {
-    canvas.toBlob(
-      blob => blob ? resolve(blob) : reject(new Error("Bilden kunde inte komprimeras.")),
-      "image/jpeg",
-      quality);
+  songs.forEach((song, index) => {
+    const article = document.createElement("article");
+    article.className = "song-card";
+
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "song-toggle";
+    toggle.setAttribute("aria-expanded", "false");
+
+    const number = document.createElement("span");
+    number.className = "song-number";
+    number.textContent = `${index + 1}`;
+    const heading = document.createElement("span");
+    heading.className = "song-heading";
+    const title = document.createElement("strong");
+    title.textContent = song.title;
+    heading.append(title);
+    if (song.melody) {
+      const melody = document.createElement("small");
+      melody.textContent = `Melodi: ${song.melody}`;
+      heading.append(melody);
+    }
+    const arrow = document.createElement("span");
+    arrow.className = "song-arrow";
+    arrow.textContent = "⌄";
+    toggle.append(number, heading, arrow);
+
+    const content = document.createElement("div");
+    content.className = "song-content";
+    content.hidden = true;
+    if (song.imageUrl) {
+      const image = document.createElement("img");
+      image.src = song.imageUrl;
+      image.alt = `Illustration till ${song.title}`;
+      image.loading = "lazy";
+      image.decoding = "async";
+      content.append(image);
+    }
+    const lyrics = document.createElement("p");
+    lyrics.className = "song-lyrics";
+    lyrics.textContent = song.lyrics;
+    content.append(lyrics);
+
+    toggle.addEventListener("click", () => {
+      const willOpen = content.hidden;
+      content.hidden = !willOpen;
+      toggle.setAttribute("aria-expanded", `${willOpen}`);
+      article.classList.toggle("open", willOpen);
+    });
+
+    article.append(toggle, content);
+    songList.append(article);
   });
 }
 
@@ -409,9 +442,184 @@ document.querySelector("#open-admin-challenges").addEventListener("click", async
   await loadChallenges();
 });
 
+document.querySelector("#open-admin-songs").addEventListener("click", async () => {
+  showView("adminSongs");
+  resetSongForm();
+  await loadAdminSongs();
+});
+
 document.querySelectorAll(".close-admin").forEach(button => {
   button.addEventListener("click", () => showView("dashboard"));
 });
+
+async function loadAdminSongs() {
+  adminSongList.innerHTML = '<p class="muted">Hämtar sånger…</p>';
+  adminSongError.hidden = true;
+  try {
+    renderAdminSongs(await api.listSongs());
+  } catch (error) {
+    adminSongList.replaceChildren();
+    adminSongError.textContent = error.message;
+    adminSongError.hidden = false;
+  }
+}
+
+function renderAdminSongs(songs) {
+  adminSongList.replaceChildren();
+  if (songs.length === 0) {
+    adminSongList.innerHTML = '<p class="muted">Det finns inga sånger ännu.</p>';
+    return;
+  }
+
+  songs.forEach(song => {
+    const row = document.createElement("article");
+    row.className = "admin-song-row";
+    const info = document.createElement("div");
+    const title = document.createElement("p");
+    title.className = "participant-name";
+    title.textContent = song.title;
+    const detail = document.createElement("p");
+    detail.className = "participant-score";
+    const parts = [`Ordning ${song.sortOrder}`];
+    if (song.melody) parts.push(`Melodi: ${song.melody}`);
+    if (song.imageUrl) parts.push("har bild");
+    detail.textContent = parts.join(" · ");
+    info.append(title, detail);
+
+    const actions = document.createElement("div");
+    actions.className = "icon-actions";
+    const edit = document.createElement("button");
+    edit.type = "button";
+    edit.className = "icon-button";
+    edit.textContent = "✎";
+    edit.setAttribute("aria-label", `Ändra ${song.title}`);
+    edit.addEventListener("click", () => beginSongEdit(song));
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "icon-button danger";
+    remove.textContent = "🗑";
+    remove.setAttribute("aria-label", `Ta bort ${song.title}`);
+    remove.addEventListener("click", () => removeSong(song, remove));
+    actions.append(edit, remove);
+    row.append(info, actions);
+    adminSongList.append(row);
+  });
+}
+
+songForm.addEventListener("submit", async event => {
+  event.preventDefault();
+  adminSongError.hidden = true;
+  adminSongStatus.hidden = true;
+  saveSongButton.disabled = true;
+  const imageFile = songImage.files?.[0];
+  let savedSong = null;
+
+  try {
+    const sortOrder = Number.parseInt(songSortOrder.value, 10);
+    savedSong = songId.value
+      ? await api.updateSong(songId.value, songTitle.value, songMelody.value, songLyrics.value, sortOrder)
+      : await api.createSong(songTitle.value, songMelody.value, songLyrics.value, sortOrder);
+
+    if (imageFile) {
+      adminSongStatus.textContent = "Komprimerar och laddar upp bilden…";
+      adminSongStatus.hidden = false;
+      const compressed = await compressImage(imageFile, 1600, 0.86);
+      savedSong = await api.uploadSongImage(savedSong.id, compressed);
+    }
+
+    resetSongForm();
+    adminSongStatus.textContent = "Sången är sparad.";
+    adminSongStatus.hidden = false;
+    await loadAdminSongs();
+  } catch (error) {
+    if (savedSong) {
+      songId.value = savedSong.id;
+      saveSongButton.textContent = "Spara ändringar";
+      cancelSongEditButton.hidden = false;
+      adminSongError.textContent = `Sångtexten sparades, men bilden kunde inte sparas: ${error.message}`;
+      await loadAdminSongs();
+    } else {
+      adminSongError.textContent = error.message;
+    }
+    adminSongError.hidden = false;
+    adminSongStatus.hidden = true;
+  } finally {
+    saveSongButton.disabled = false;
+  }
+});
+
+cancelSongEditButton.addEventListener("click", resetSongForm);
+
+function beginSongEdit(song) {
+  currentSong = song;
+  songId.value = song.id;
+  songTitle.value = song.title;
+  songMelody.value = song.melody;
+  songLyrics.value = song.lyrics;
+  songSortOrder.value = song.sortOrder;
+  songImage.value = "";
+  saveSongButton.textContent = "Spara ändringar";
+  cancelSongEditButton.hidden = false;
+  adminSongError.hidden = true;
+  adminSongStatus.hidden = true;
+  showCurrentSongImage(song);
+  songForm.scrollIntoView({ behavior: "smooth", block: "start" });
+  songTitle.focus();
+}
+
+function showCurrentSongImage(song) {
+  if (song.imageUrl) {
+    songCurrentImagePreview.src = song.imageUrl;
+    songCurrentImage.hidden = false;
+  } else {
+    songCurrentImagePreview.removeAttribute("src");
+    songCurrentImage.hidden = true;
+  }
+}
+
+function resetSongForm() {
+  songForm.reset();
+  songId.value = "";
+  songSortOrder.value = "0";
+  currentSong = null;
+  showCurrentSongImage({ imageUrl: null });
+  saveSongButton.textContent = "Lägg till sång";
+  cancelSongEditButton.hidden = true;
+  adminSongError.hidden = true;
+  adminSongStatus.hidden = true;
+}
+
+removeSongImageButton.addEventListener("click", async () => {
+  if (!currentSong?.imageUrl || !window.confirm("Ta bort bilden från sången?")) return;
+  removeSongImageButton.disabled = true;
+  adminSongError.hidden = true;
+  try {
+    await api.deleteSongImage(currentSong.id);
+    currentSong = { ...currentSong, imageUrl: null };
+    showCurrentSongImage(currentSong);
+    await loadAdminSongs();
+  } catch (error) {
+    adminSongError.textContent = error.message;
+    adminSongError.hidden = false;
+  } finally {
+    removeSongImageButton.disabled = false;
+  }
+});
+
+async function removeSong(song, button) {
+  if (!window.confirm(`Ta bort sången ”${song.title}”?`)) return;
+  button.disabled = true;
+  adminSongError.hidden = true;
+  try {
+    await api.deleteSong(song.id);
+    if (songId.value === song.id) resetSongForm();
+    await loadAdminSongs();
+  } catch (error) {
+    adminSongError.textContent = error.message;
+    adminSongError.hidden = false;
+    button.disabled = false;
+  }
+}
 
 async function loadParticipants() {
   participantList.innerHTML = '<p class="muted">Hämtar deltagare…</p>';

@@ -8,4 +8,5 @@ public sealed class StorageOptions
     public string ChallengesTableName { get; init; } = "challenges";
     public string ChallengeCompletionsTableName { get; init; } = "challengecompletions";
     public string PhotosTableName { get; init; } = "photos";
+    public string SongsTableName { get; init; } = "songs";
 }

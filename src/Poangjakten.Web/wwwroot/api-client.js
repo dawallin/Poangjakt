@@ -83,5 +83,31 @@ export const api = {
   deletePhoto(id) {
     return request(`/api/admin/photos/${encodeURIComponent(id)}`, { method: "DELETE" });
   },
+  listSongs() { return request("/api/songs"); },
+  createSong(title, melody, lyrics, sortOrder) {
+    return request("/api/admin/songs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, melody, lyrics, sortOrder })
+    });
+  },
+  updateSong(id, title, melody, lyrics, sortOrder) {
+    return request(`/api/admin/songs/${encodeURIComponent(id)}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, melody, lyrics, sortOrder })
+    });
+  },
+  uploadSongImage(id, image) {
+    const form = new FormData();
+    form.append("image", image, "song-image.jpg");
+    return request(`/api/admin/songs/${encodeURIComponent(id)}/image`, { method: "POST", body: form });
+  },
+  deleteSongImage(id) {
+    return request(`/api/admin/songs/${encodeURIComponent(id)}/image`, { method: "DELETE" });
+  },
+  deleteSong(id) {
+    return request(`/api/admin/songs/${encodeURIComponent(id)}`, { method: "DELETE" });
+  },
   testStorage() { return request("/health/storage", { method: "POST" }); }
 };

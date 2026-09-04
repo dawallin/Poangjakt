@@ -24,6 +24,9 @@ utvecklas eller bytas utan att resten av appen behöver skrivas om.
 - `GET /api/photos/{id}/image` – hämtar visningsbilden från den privata blobcontainern
 - `GET /api/photos/{id}/thumbnail` – hämtar tumnageln
 - `DELETE /api/admin/photos/{id}` – raderar bild, tumnagel och metadata som admin
+- `GET /api/songs` – listar sånger från minnet i visningsordning
+- `GET /api/songs/{id}/image` – hämtar en valfri sångbild från blobcontainern
+- `/api/admin/songs` – skapa, ändra, sortera och radera sånger samt hantera bilder
 - `/health` – health check för Azure App Service
 - `POST /health/storage` – skriver, läser och raderar testdata i Table och Blob Storage
 
@@ -42,6 +45,11 @@ Bilder komprimeras i webbläsaren till högst 2048 pixlar på längsta sidan och
 84 %. En separat tumnagel på högst 480 pixlar skapas för galleriet. Båda sparas i den
 privata blobcontainern, medan fotograf, blobnamn och uppladdningstid ligger i tabellen
 `photos` och laddas till minnet när appen startar.
+
+Sångernas titel, melodi, text och visningsordning lagras i Table Storage-tabellen
+`songs` och läses till minnet vid uppstart. Valfria illustrationer komprimeras i
+webbläsaren och sparas under `songs/` i den privata blobcontainern. Källdokument som
+PDF eller PowerPoint ingår inte i applikationsrepot.
 
 ## Azure
 

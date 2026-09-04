@@ -56,7 +56,7 @@
           <span class="tile-symbol" aria-hidden="true">◆</span>
           <span class="menu-title">Hur mycket Daniel är du?</span><span class="menu-caption">Testet öppnar senare</span>
         </button>
-        <button class="menu-tile tile-green" type="button" data-feature="songs">
+        <button id="open-songs" class="menu-tile tile-green" type="button">
           <span class="tile-symbol" aria-hidden="true">♫</span>
           <span class="menu-title">Sånger</span><span class="menu-caption">Allsång nära till hands</span>
         </button>
@@ -72,6 +72,10 @@
           <span class="tile-symbol" aria-hidden="true">✦</span>
           <span class="menu-title">Administrera poängjakt</span><span class="menu-caption">Skapa och ändra uppgifter</span>
         </button>
+        <button id="open-admin-songs" class="menu-tile tile-admin-songs tile-wide admin-only" type="button" hidden>
+          <span class="tile-symbol" aria-hidden="true">♫</span>
+          <span class="menu-title">Administrera sånger</span><span class="menu-caption">Skapa, sortera och lägg till bilder</span>
+        </button>
       </div>
 
       <details class="system-panel admin-only" hidden>
@@ -85,6 +89,17 @@
         </div>
       </details>
       <button id="change-participant" class="text-button" type="button">Byt deltagare</button>
+    </section>
+
+    <section id="songs-view" class="view" hidden>
+      <button id="close-songs" class="back-button" type="button">← Tillbaka</button>
+      <p class="eyebrow">Allsång</p>
+      <h1 class="section-heading">Sånger</h1>
+      <p class="intro">Välj en sång för att visa texten. Nu tar vi i från tårna!</p>
+      <p id="song-error" class="form-error" role="alert" hidden></p>
+      <div id="song-list" class="song-list" aria-live="polite">
+        <p class="muted">Hämtar sånger…</p>
+      </div>
     </section>
 
     <section id="photos-view" class="view" hidden>
@@ -162,6 +177,43 @@
 
       <div id="challenge-list" class="challenge-groups" aria-live="polite">
         <p class="muted">Hämtar uppgifter…</p>
+      </div>
+    </section>
+
+    <section id="admin-songs-view" class="view" hidden>
+      <button class="back-button close-admin" type="button">← Tillbaka</button>
+      <p class="eyebrow">Administration</p>
+      <h1 class="section-heading">Sånger</h1>
+      <p class="intro">Skapa och sortera sånger. Bilden är valfri och komprimeras före uppladdning.</p>
+
+      <form id="song-form" class="song-form">
+        <input id="song-id" type="hidden">
+        <label for="song-title">Titel</label>
+        <input id="song-title" type="text" minlength="2" maxlength="100" required>
+        <label for="song-melody">Melodi <span class="optional">(valfritt)</span></label>
+        <input id="song-melody" type="text" maxlength="150" placeholder="Till melodin av…">
+        <label for="song-lyrics">Sångtext</label>
+        <textarea id="song-lyrics" rows="12" minlength="1" maxlength="12000" required></textarea>
+        <label for="song-sort-order">Ordning</label>
+        <input id="song-sort-order" type="number" min="0" max="10000" inputmode="numeric" value="0" required>
+        <label for="song-image">Bild <span class="optional">(valfritt)</span></label>
+        <input id="song-image" type="file" accept="image/*">
+
+        <div id="song-current-image" class="song-current-image" hidden>
+          <img id="song-current-image-preview" alt="Nuvarande sångbild">
+          <button id="remove-song-image" type="button" class="danger-button">Ta bort bilden</button>
+        </div>
+
+        <p id="admin-song-error" class="form-error" role="alert" hidden></p>
+        <p id="admin-song-status" class="upload-status" role="status" hidden></p>
+        <div class="form-actions">
+          <button id="save-song" type="submit" class="primary-button">Lägg till sång</button>
+          <button id="cancel-song-edit" type="button" class="secondary-button" hidden>Avbryt</button>
+        </div>
+      </form>
+
+      <div id="admin-song-list" class="admin-song-list" aria-live="polite">
+        <p class="muted">Hämtar sånger…</p>
       </div>
     </section>
 
