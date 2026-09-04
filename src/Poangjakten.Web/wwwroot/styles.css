@@ -153,7 +153,6 @@ button:disabled { opacity: .65; cursor: wait; }
 .tile-orange { background: #ea580c; }
 .tile-blue { background: #2563eb; }
 .tile-purple { background: #7c3aed; }
-.tile-pink { background: #be185d; }
 .tile-green { background: #15803d; }
 .tile-navy { background: #334155; }
 .tile-admin { background: #475569; }
