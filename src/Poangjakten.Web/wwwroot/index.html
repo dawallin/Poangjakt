@@ -44,7 +44,7 @@
           <span class="tile-symbol" aria-hidden="true">✓</span>
           <span class="menu-title">Poängjakt</span><span class="menu-caption">Kryssa i det du har gjort</span>
         </button>
-        <button class="menu-tile tile-blue" type="button" data-feature="leaderboard">
+        <button id="open-leaderboard" class="menu-tile tile-blue" type="button">
           <span class="tile-symbol" aria-hidden="true">▲</span>
           <span class="menu-title">Topplista</span><span class="menu-caption">Se ställningen</span>
         </button>
@@ -85,6 +85,21 @@
         </div>
       </details>
       <button id="change-participant" class="text-button" type="button">Byt deltagare</button>
+    </section>
+
+    <section id="leaderboard-view" class="view" hidden>
+      <button id="close-leaderboard" class="back-button" type="button">← Tillbaka</button>
+      <p class="eyebrow">Poängjakten</p>
+      <h1 class="section-heading">Topplista</h1>
+      <p class="intro">Ställningen just nu. Vid lika poäng delar deltagarna placering.</p>
+      <div class="gallery-heading">
+        <h2>Alla deltagare</h2>
+        <button id="refresh-leaderboard" type="button" class="text-button inline-text-button">Uppdatera</button>
+      </div>
+      <p id="leaderboard-error" class="form-error" role="alert" hidden></p>
+      <div id="leaderboard-list" class="leaderboard-list" aria-live="polite">
+        <p class="muted">Hämtar ställningen…</p>
+      </div>
     </section>
 
     <section id="songs-view" class="view" hidden>

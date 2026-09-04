@@ -38,6 +38,7 @@ export const api = {
     });
   },
   getParticipant(id) { return request(`/api/participants/${encodeURIComponent(id)}`); },
+  listLeaderboard() { return request("/api/participants"); },
   listParticipantChallenges(participantId) {
     return request(`/api/participants/${encodeURIComponent(participantId)}/challenges`);
   },
@@ -82,6 +83,11 @@ export const api = {
   },
   deletePhoto(id) {
     return request(`/api/admin/photos/${encodeURIComponent(id)}`, { method: "DELETE" });
+  },
+  deleteOwnPhoto(participantId, id) {
+    return request(
+      `/api/participants/${encodeURIComponent(participantId)}/photos/${encodeURIComponent(id)}`,
+      { method: "DELETE" });
   },
   listSongs() { return request("/api/songs"); },
   createSong(title, melody, lyrics, sortOrder) {

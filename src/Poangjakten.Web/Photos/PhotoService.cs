@@ -76,6 +76,34 @@ public sealed class PhotoService(
 
         return true;
     }
+
+    public async Task<OwnedPhotoDeleteResult> DeleteOwnedAsync(
+        string participantId,
+        string photoId,
+        CancellationToken cancellationToken)
+    {
+        var photo = photos.Find(photoId);
+        if (photo is null)
+        {
+            return OwnedPhotoDeleteResult.NotFound;
+        }
+
+        if (!string.Equals(photo.ParticipantId, participantId, StringComparison.Ordinal))
+        {
+            return OwnedPhotoDeleteResult.Forbidden;
+        }
+
+        return await DeleteAsync(photoId, cancellationToken)
+            ? OwnedPhotoDeleteResult.Deleted
+            : OwnedPhotoDeleteResult.NotFound;
+    }
+}
+
+public enum OwnedPhotoDeleteResult
+{
+    Deleted,
+    NotFound,
+    Forbidden
 }
 
 public sealed record PhotoUploadResult(Photo? Photo, string? Error)

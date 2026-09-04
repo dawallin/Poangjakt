@@ -31,6 +31,21 @@ public static class PhotoEndpoints
             CancellationToken cancellationToken) =>
             DownloadAsync(id, thumbnail: true, context, photos, blobs, cancellationToken));
 
+        routes.MapDelete("/api/participants/{participantId}/photos/{id}", async (
+            string participantId,
+            string id,
+            PhotoService service,
+            CancellationToken cancellationToken) =>
+        {
+            var result = await service.DeleteOwnedAsync(participantId, id, cancellationToken);
+            return result switch
+            {
+                OwnedPhotoDeleteResult.Deleted => Results.NoContent(),
+                OwnedPhotoDeleteResult.Forbidden => Results.StatusCode(StatusCodes.Status403Forbidden),
+                _ => Results.NotFound()
+            };
+        });
+
         routes.MapDelete("/api/admin/photos/{id}", async (
             string id,
             PhotoService service,

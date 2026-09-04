@@ -6,6 +6,7 @@ const views = {
   loading: document.querySelector("#loading-view"),
   registration: document.querySelector("#registration-view"),
   dashboard: document.querySelector("#dashboard-view"),
+  leaderboard: document.querySelector("#leaderboard-view"),
   challenges: document.querySelector("#challenges-view"),
   photos: document.querySelector("#photos-view"),
   songs: document.querySelector("#songs-view"),
@@ -48,6 +49,8 @@ const photoError = document.querySelector("#photo-error");
 const photoDialog = document.querySelector("#photo-dialog");
 const dialogPhoto = document.querySelector("#dialog-photo");
 const photoDialogMeta = document.querySelector("#photo-dialog-meta");
+const leaderboardList = document.querySelector("#leaderboard-list");
+const leaderboardError = document.querySelector("#leaderboard-error");
 const songList = document.querySelector("#song-list");
 const songError = document.querySelector("#song-error");
 const songForm = document.querySelector("#song-form");
@@ -174,6 +177,61 @@ document.querySelector("#open-challenges").addEventListener("click", async () =>
 
 document.querySelector("#close-challenges").addEventListener("click", () => showView("dashboard"));
 
+document.querySelector("#open-leaderboard").addEventListener("click", async () => {
+  showView("leaderboard");
+  await loadLeaderboard();
+});
+
+document.querySelector("#close-leaderboard").addEventListener("click", () => showView("dashboard"));
+document.querySelector("#refresh-leaderboard").addEventListener("click", loadLeaderboard);
+
+async function loadLeaderboard() {
+  leaderboardList.innerHTML = '<p class="muted">Hämtar ställningen…</p>';
+  leaderboardError.hidden = true;
+  try {
+    renderLeaderboard(await api.listLeaderboard());
+  } catch (error) {
+    leaderboardList.replaceChildren();
+    leaderboardError.textContent = error.message;
+    leaderboardError.hidden = false;
+  }
+}
+
+function renderLeaderboard(participants) {
+  leaderboardList.replaceChildren();
+  if (participants.length === 0) {
+    leaderboardList.innerHTML = '<p class="muted">Inga deltagare har gått med ännu.</p>';
+    return;
+  }
+
+  let previousScore = null;
+  let rank = 0;
+  participants.forEach((participant, index) => {
+    if (participant.score !== previousScore) rank = index + 1;
+    previousScore = participant.score;
+
+    const row = document.createElement("article");
+    row.className = `leaderboard-row rank-${Math.min(rank, 4)}`;
+    if (participant.id === currentParticipantId) row.classList.add("current-participant");
+
+    const position = document.createElement("span");
+    position.className = "leaderboard-rank";
+    position.textContent = `${rank}`;
+    const name = document.createElement("strong");
+    name.className = "leaderboard-name";
+    name.textContent = participant.displayName;
+    const points = document.createElement("span");
+    points.className = "leaderboard-score";
+    const pointValue = document.createElement("strong");
+    pointValue.textContent = participant.score;
+    const pointLabel = document.createElement("small");
+    pointLabel.textContent = "poäng";
+    points.append(pointValue, pointLabel);
+    row.append(position, name, points);
+    leaderboardList.append(row);
+  });
+}
+
 document.querySelector("#open-photos").addEventListener("click", async () => {
   showView("photos");
   await loadPhotos();
@@ -297,7 +355,8 @@ function renderPhotos(photos) {
 
     card.append(preview, details);
 
-    if (currentIsAdmin) {
+    const canDelete = currentIsAdmin || photo.participantId === currentParticipantId;
+    if (canDelete) {
       const remove = document.createElement("button");
       remove.type = "button";
       remove.className = "photo-delete danger-button";
@@ -332,7 +391,11 @@ async function removePhoto(photo, button) {
   button.disabled = true;
   photoError.hidden = true;
   try {
-    await api.deletePhoto(photo.id);
+    if (currentIsAdmin) {
+      await api.deletePhoto(photo.id);
+    } else {
+      await api.deleteOwnPhoto(currentParticipantId, photo.id);
+    }
     await loadPhotos();
   } catch (error) {
     photoError.textContent = error.message;

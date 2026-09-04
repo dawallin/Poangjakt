@@ -14,6 +14,7 @@ utvecklas eller bytas utan att resten av appen behöver skrivas om.
 - `POST /api/participants/register` – registrerar eller återupptar en deltagare via namn
 - `GET /api/participants/{id}` – hämtar en deltagare från minnesregistret
 - `GET /api/participants` – listar deltagarna i poängordning
+- `DELETE /api/participants/{participantId}/photos/{id}` – låter deltagaren radera en egen bild
 - `GET /api/admin/participants` – listar deltagare för administration (testläge)
 - `DELETE /api/admin/participants/{id}` – tar bort en deltagare ur minne och lagring (testläge)
 - `/api/admin-session` – skapar, kontrollerar och avslutar en serverlagrad adminsession
