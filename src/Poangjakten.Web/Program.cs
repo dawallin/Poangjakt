@@ -1,6 +1,7 @@
 using Azure.Core;
 using Azure.Identity;
 using Poangjakten.Web.Administration;
+using Poangjakten.Web.Challenges;
 using Poangjakten.Web.Participants;
 using Poangjakten.Web.Storage;
 
@@ -13,6 +14,9 @@ builder.Services.AddSingleton<StorageDiagnostics>();
 builder.Services.AddSingleton<IParticipantRepository, TableParticipantRepository>();
 builder.Services.AddSingleton<ParticipantRegistry>();
 builder.Services.AddHostedService(serviceProvider => serviceProvider.GetRequiredService<ParticipantRegistry>());
+builder.Services.AddSingleton<IChallengeRepository, TableChallengeRepository>();
+builder.Services.AddSingleton<ChallengeRegistry>();
+builder.Services.AddHostedService(serviceProvider => serviceProvider.GetRequiredService<ChallengeRegistry>());
 builder.Services.Configure<AdminOptions>(builder.Configuration.GetSection("Admin"));
 builder.Services.AddSingleton<AdminSessionService>();
 builder.Services.AddScoped<AdminEndpointFilter>();
@@ -39,6 +43,7 @@ app.MapPost("/health/storage", async (StorageDiagnostics diagnostics, Cancellati
 
 app.MapParticipantEndpoints();
 app.MapAdministrationEndpoints();
+app.MapChallengeEndpoints();
 
 app.MapFallbackToFile("index.html");
 

@@ -64,9 +64,13 @@
           <span class="tile-symbol" aria-hidden="true">●</span>
           <span class="menu-title">Mitt bord</span><span class="menu-caption">Inte valt ännu</span>
         </button>
-        <button id="open-admin" class="menu-tile tile-admin tile-wide admin-only" type="button" hidden>
-          <span class="tile-symbol" aria-hidden="true">⚙</span>
-          <span class="menu-title">Administrera</span><span class="menu-caption">Synlig under utveckling</span>
+        <button id="open-admin-users" class="menu-tile tile-admin tile-wide admin-only" type="button" hidden>
+          <span class="tile-symbol" aria-hidden="true">♟</span>
+          <span class="menu-title">Administrera användare</span><span class="menu-caption">Hantera testdeltagare</span>
+        </button>
+        <button id="open-admin-challenges" class="menu-tile tile-admin-points tile-wide admin-only" type="button" hidden>
+          <span class="tile-symbol" aria-hidden="true">✦</span>
+          <span class="menu-title">Administrera poängjakt</span><span class="menu-caption">Skapa och ändra uppgifter</span>
         </button>
       </div>
 
@@ -83,14 +87,38 @@
       <button id="change-participant" class="text-button" type="button">Byt deltagare</button>
     </section>
 
-    <section id="admin-view" class="view" hidden>
-      <button id="close-admin" class="back-button" type="button">← Tillbaka</button>
+    <section id="admin-users-view" class="view" hidden>
+      <button class="back-button close-admin" type="button">← Tillbaka</button>
       <p class="eyebrow">Administration · testläge</p>
       <h1 class="section-heading">Deltagare</h1>
       <p class="intro">Radera testanvändare från både appens minne och Table Storage.</p>
       <p id="admin-error" class="form-error" role="alert" hidden></p>
       <div id="participant-list" class="participant-list" aria-live="polite">
         <p class="muted">Hämtar deltagare…</p>
+      </div>
+    </section>
+
+    <section id="admin-challenges-view" class="view" hidden>
+      <button class="back-button close-admin" type="button">← Tillbaka</button>
+      <p class="eyebrow">Administration</p>
+      <h1 class="section-heading">Poängjakt</h1>
+      <p class="intro">Skapa uppgifter och ändra hur många poäng de ger.</p>
+
+      <form id="challenge-form" class="challenge-form">
+        <input id="challenge-id" type="hidden">
+        <label for="challenge-description">Beskrivning</label>
+        <textarea id="challenge-description" rows="3" minlength="3" maxlength="240" required></textarea>
+        <label for="challenge-points">Poäng</label>
+        <input id="challenge-points" type="number" min="1" max="1000" inputmode="numeric" required>
+        <p id="challenge-error" class="form-error" role="alert" hidden></p>
+        <div class="form-actions">
+          <button id="save-challenge" type="submit" class="primary-button">Lägg till uppgift</button>
+          <button id="cancel-challenge-edit" type="button" class="secondary-button" hidden>Avbryt</button>
+        </div>
+      </form>
+
+      <div id="challenge-list" class="challenge-groups" aria-live="polite">
+        <p class="muted">Hämtar uppgifter…</p>
       </div>
     </section>
 
