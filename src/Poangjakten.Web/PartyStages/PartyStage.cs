@@ -19,7 +19,7 @@ public static class PartyStageDefinitions
         new(
             TableRevealId,
             "Visa borden",
-            "Deltagarna kan se sitt bord och använda bordspoängjakten och Topplista Bord.")
+            "Deltagarna kan se sitt bord och använda Låtlista, bordspoängjakten och Topplista Bord.")
     ];
 
     private static readonly IReadOnlyDictionary<string, PartyStageDefinition> ById =
