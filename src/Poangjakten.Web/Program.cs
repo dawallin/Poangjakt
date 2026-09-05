@@ -48,7 +48,14 @@ var app = builder.Build();
 
 app.UseHttpsRedirection();
 app.UseDefaultFiles();
-app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = context =>
+    {
+        context.Context.Response.Headers.CacheControl = "no-cache, no-store";
+        context.Context.Response.Headers.Pragma = "no-cache";
+    }
+});
 
 app.MapGet("/api/hello", () => Results.Ok(new
 {

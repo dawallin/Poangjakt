@@ -1,4 +1,4 @@
-import { api } from "./api-client.js";
+import { api } from "./api-client.js?v=20260905-1";
 import { compressImage, compressPhoto } from "./image-utils.js";
 
 const participantKey = "poangjakten.participantId";
