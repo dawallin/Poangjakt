@@ -518,6 +518,17 @@ function renderSongRequests(songRequests) {
     info.append(title, artist, table);
     row.append(info);
 
+    const actions = document.createElement("div");
+    actions.className = "song-request-actions";
+    const spotifyLink = document.createElement("a");
+    spotifyLink.className = "spotify-link";
+    spotifyLink.href = `https://open.spotify.com/search/${encodeURIComponent(`${songRequest.artist} ${songRequest.title}`)}`;
+    spotifyLink.target = "_blank";
+    spotifyLink.rel = "noopener noreferrer";
+    spotifyLink.textContent = "Spotify ↗";
+    spotifyLink.setAttribute("aria-label", `Sök efter ${songRequest.title} av ${songRequest.artist} på Spotify`);
+    actions.append(spotifyLink);
+
     if (currentIsAdmin || songRequest.isOwnTable) {
       const remove = document.createElement("button");
       remove.type = "button";
@@ -525,9 +536,10 @@ function renderSongRequests(songRequests) {
       remove.textContent = "🗑";
       remove.setAttribute("aria-label", `Ta bort ${songRequest.title} av ${songRequest.artist}`);
       remove.addEventListener("click", () => removeSongRequest(songRequest, remove));
-      row.append(remove);
+      actions.append(remove);
     }
 
+    row.append(actions);
     songRequestList.append(row);
   });
 }
