@@ -163,7 +163,9 @@ button:disabled { opacity: .65; cursor: wait; }
 .menu-tile:active { transform: scale(.98); filter: brightness(.9); }
 .tile-wide { grid-column: 1 / -1; }
 .tile-orange { background: #ea580c; }
+.tile-table-points { background: #0f766e; }
 .tile-blue { background: #2563eb; }
+.tile-table-leaderboard { background: #0369a1; }
 .tile-purple { background: #7c3aed; }
 .tile-green { background: #15803d; }
 .tile-navy { background: #334155; }
@@ -389,6 +391,7 @@ button:disabled { opacity: .65; cursor: wait; }
 .challenge-form label, .participant-form label, .song-form label { font-size: .78rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
 .challenge-form textarea,
 .challenge-form input[type="number"],
+.challenge-form select,
 .participant-form textarea,
 .participant-form input[type="text"],
 .participant-form select,
@@ -406,6 +409,7 @@ button:disabled { opacity: .65; cursor: wait; }
 }
 .challenge-form textarea:focus,
 .challenge-form input:focus,
+.challenge-form select:focus,
 .participant-form textarea:focus,
 .participant-form input:focus,
 .participant-form select:focus,
@@ -483,6 +487,8 @@ button:disabled { opacity: .65; cursor: wait; }
 .song-current-image img { width: 100%; max-height: 18rem; object-fit: contain; background: #fff; }
 
 .challenge-groups { display: grid; gap: 1.6rem; }
+.challenge-scope-group { display: grid; gap: 1rem; }
+.challenge-scope-title { margin: 0; padding-bottom: .5rem; border-bottom: 1px solid rgba(255, 255, 255, .16); font-size: 1.5rem; }
 .challenge-group-title { margin: 0 0 .6rem; color: #fb923c; font-size: 1.3rem; }
 .challenge-items { display: grid; gap: .55rem; }
 .challenge-row {

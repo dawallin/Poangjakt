@@ -29,6 +29,7 @@ public sealed class TableChallengeRepository(AzureStorageClients storage) : ICha
         {
             ["Description"] = challenge.Description,
             ["Points"] = challenge.Points,
+            ["Scope"] = challenge.Scope,
             ["CreatedAt"] = challenge.CreatedAt,
             ["UpdatedAt"] = challenge.UpdatedAt
         };
@@ -46,6 +47,7 @@ public sealed class TableChallengeRepository(AzureStorageClients storage) : ICha
         entity.RowKey,
         entity.GetString("Description") ?? "Uppgift utan beskrivning",
         entity.GetInt32("Points") ?? 0,
+        ChallengeScopes.Normalize(entity.GetString("Scope")) ?? ChallengeScopes.Individual,
         entity.GetDateTimeOffset("CreatedAt") ?? entity.Timestamp ?? DateTimeOffset.UtcNow,
         entity.GetDateTimeOffset("UpdatedAt") ?? entity.Timestamp ?? DateTimeOffset.UtcNow);
 }

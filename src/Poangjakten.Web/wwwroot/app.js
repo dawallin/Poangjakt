@@ -8,7 +8,9 @@ const views = {
   dashboard: document.querySelector("#dashboard-view"),
   table: document.querySelector("#table-view"),
   leaderboard: document.querySelector("#leaderboard-view"),
+  tableLeaderboard: document.querySelector("#table-leaderboard-view"),
   challenges: document.querySelector("#challenges-view"),
+  tableChallenges: document.querySelector("#table-challenges-view"),
   photos: document.querySelector("#photos-view"),
   songs: document.querySelector("#songs-view"),
   adminUsers: document.querySelector("#admin-users-view"),
@@ -24,13 +26,22 @@ const participantClue = document.querySelector("#participant-clue");
 const tableTile = document.querySelector("#open-table");
 const tableTileSymbol = document.querySelector("#table-tile-symbol");
 const tableTileCaption = document.querySelector("#table-tile-caption");
+const tableChallengeTile = document.querySelector("#open-table-challenges");
+const tableChallengeTileSymbol = document.querySelector("#table-challenge-tile-symbol");
+const tableChallengeTileCaption = document.querySelector("#table-challenge-tile-caption");
+const tableLeaderboardTile = document.querySelector("#open-table-leaderboard");
+const tableLeaderboardTileSymbol = document.querySelector("#table-leaderboard-tile-symbol");
+const tableLeaderboardTileCaption = document.querySelector("#table-leaderboard-tile-caption");
 const participantTableResult = document.querySelector("#participant-table-result");
 const participantTableError = document.querySelector("#participant-table-error");
 const score = document.querySelector("#score");
 const scoreBadge = document.querySelector("#score-badge");
 const challengeScore = document.querySelector("#challenge-score");
+const tableChallengeScore = document.querySelector("#table-challenge-score");
 const playerChallengeList = document.querySelector("#player-challenge-list");
 const playerChallengeError = document.querySelector("#player-challenge-error");
+const tableChallengeList = document.querySelector("#table-challenge-list");
+const tableChallengeError = document.querySelector("#table-challenge-error");
 const storageMessage = document.querySelector("#storage-message");
 const tableStatus = document.querySelector("#table-status");
 const blobStatus = document.querySelector("#blob-status");
@@ -52,6 +63,7 @@ const challengeForm = document.querySelector("#challenge-form");
 const challengeId = document.querySelector("#challenge-id");
 const challengeDescription = document.querySelector("#challenge-description");
 const challengePoints = document.querySelector("#challenge-points");
+const challengeScope = document.querySelector("#challenge-scope");
 const challengeError = document.querySelector("#challenge-error");
 const challengeList = document.querySelector("#challenge-list");
 const saveChallengeButton = document.querySelector("#save-challenge");
@@ -69,6 +81,8 @@ const dialogPhoto = document.querySelector("#dialog-photo");
 const photoDialogMeta = document.querySelector("#photo-dialog-meta");
 const leaderboardList = document.querySelector("#leaderboard-list");
 const leaderboardError = document.querySelector("#leaderboard-error");
+const tableLeaderboardList = document.querySelector("#table-leaderboard-list");
+const tableLeaderboardError = document.querySelector("#table-leaderboard-error");
 const songList = document.querySelector("#song-list");
 const songError = document.querySelector("#song-error");
 const songForm = document.querySelector("#song-form");
@@ -195,6 +209,16 @@ function setTableTileState(isUnlocked) {
   tableTile.classList.toggle("locked", !isUnlocked);
   tableTileSymbol.textContent = isUnlocked ? "●" : "🔒";
   tableTileCaption.textContent = isUnlocked ? "Se bordet och dina bordskamrater" : "Väntar på att låsas upp";
+  tableChallengeTile.classList.toggle("locked", !isUnlocked);
+  tableChallengeTileSymbol.textContent = isUnlocked ? "✓" : "🔒";
+  tableChallengeTileCaption.textContent = isUnlocked
+    ? "Kryssa i det bordet har gjort"
+    : "Låses upp tillsammans med borden";
+  tableLeaderboardTile.classList.toggle("locked", !isUnlocked);
+  tableLeaderboardTileSymbol.textContent = isUnlocked ? "▲" : "🔒";
+  tableLeaderboardTileCaption.textContent = isUnlocked
+    ? "Se bordens ställning"
+    : "Låses upp tillsammans med borden";
 }
 
 tableTile.addEventListener("click", async () => {
@@ -263,6 +287,17 @@ document.querySelector("#open-challenges").addEventListener("click", async () =>
 
 document.querySelector("#close-challenges").addEventListener("click", () => showView("dashboard"));
 
+tableChallengeTile.addEventListener("click", async () => {
+  if (!currentParticipantId) {
+    showToast("Admin har inget eget bordslag.");
+    return;
+  }
+  showView("tableChallenges");
+  await loadTableChallenges();
+});
+
+document.querySelector("#close-table-challenges").addEventListener("click", () => showView("dashboard"));
+
 document.querySelector("#open-leaderboard").addEventListener("click", async () => {
   showView("leaderboard");
   await loadLeaderboard();
@@ -270,6 +305,18 @@ document.querySelector("#open-leaderboard").addEventListener("click", async () =
 
 document.querySelector("#close-leaderboard").addEventListener("click", () => showView("dashboard"));
 document.querySelector("#refresh-leaderboard").addEventListener("click", loadLeaderboard);
+
+tableLeaderboardTile.addEventListener("click", async () => {
+  if (!currentParticipantId) {
+    showToast("Admin har inget eget bordslag.");
+    return;
+  }
+  showView("tableLeaderboard");
+  await loadTableLeaderboard();
+});
+
+document.querySelector("#close-table-leaderboard").addEventListener("click", () => showView("dashboard"));
+document.querySelector("#refresh-table-leaderboard").addEventListener("click", loadTableLeaderboard);
 
 async function loadLeaderboard() {
   leaderboardList.innerHTML = '<p class="muted">Hämtar ställningen…</p>';
@@ -315,6 +362,50 @@ function renderLeaderboard(participants) {
     points.append(pointValue, pointLabel);
     row.append(position, name, points);
     leaderboardList.append(row);
+  });
+}
+
+async function loadTableLeaderboard() {
+  tableLeaderboardList.innerHTML = '<p class="muted">Hämtar ställningen…</p>';
+  tableLeaderboardError.hidden = true;
+  try {
+    const tables = await api.listTableLeaderboard(currentParticipantId);
+    setTableTileState(true);
+    renderTableLeaderboard(tables);
+  } catch (error) {
+    tableLeaderboardList.replaceChildren();
+    tableLeaderboardError.textContent = error.message;
+    tableLeaderboardError.hidden = false;
+    setTableTileState(false);
+  }
+}
+
+function renderTableLeaderboard(tables) {
+  tableLeaderboardList.replaceChildren();
+  let previousScore = null;
+  let rank = 0;
+  tables.forEach((table, index) => {
+    if (table.score !== previousScore) rank = index + 1;
+    previousScore = table.score;
+
+    const row = document.createElement("article");
+    row.className = `leaderboard-row rank-${Math.min(rank, 4)}`;
+    if (table.isCurrentTable) row.classList.add("current-participant");
+    const position = document.createElement("span");
+    position.className = "leaderboard-rank";
+    position.textContent = `${rank}`;
+    const name = document.createElement("strong");
+    name.className = "leaderboard-name";
+    name.textContent = table.displayName;
+    const points = document.createElement("span");
+    points.className = "leaderboard-score";
+    const pointValue = document.createElement("strong");
+    pointValue.textContent = table.score;
+    const pointLabel = document.createElement("small");
+    pointLabel.textContent = "poäng";
+    points.append(pointValue, pointLabel);
+    row.append(position, name, points);
+    tableLeaderboardList.append(row);
   });
 }
 
@@ -911,7 +1002,10 @@ async function loadPlayerChallenges() {
   playerChallengeList.innerHTML = '<p class="muted">Hämtar uppgifter…</p>';
   playerChallengeError.hidden = true;
   try {
-    renderPlayerChallenges(await api.listParticipantChallenges(currentParticipantId));
+    renderPlayerChallenges(
+      await api.listParticipantChallenges(currentParticipantId),
+      playerChallengeList,
+      false);
   } catch (error) {
     playerChallengeList.innerHTML = "";
     playerChallengeError.textContent = error.message;
@@ -919,10 +1013,30 @@ async function loadPlayerChallenges() {
   }
 }
 
-function renderPlayerChallenges(challenges) {
-  playerChallengeList.replaceChildren();
+async function loadTableChallenges() {
+  tableChallengeList.innerHTML = '<p class="muted">Hämtar bordsuppgifter…</p>';
+  tableChallengeError.hidden = true;
+  try {
+    const challenges = await api.listTableChallenges(currentParticipantId);
+    setTableTileState(true);
+    tableChallengeScore.textContent = challenges
+      .filter(challenge => challenge.isCompleted)
+      .reduce((total, challenge) => total + challenge.points, 0);
+    renderPlayerChallenges(challenges, tableChallengeList, true);
+  } catch (error) {
+    tableChallengeList.replaceChildren();
+    tableChallengeError.textContent = error.message;
+    tableChallengeError.hidden = false;
+    setTableTileState(false);
+  }
+}
+
+function renderPlayerChallenges(challenges, target, isTableChallenge) {
+  target.replaceChildren();
   if (challenges.length === 0) {
-    playerChallengeList.innerHTML = '<p class="muted">Inga uppgifter har lagts in ännu.</p>';
+    target.innerHTML = `<p class="muted">${isTableChallenge
+      ? "Inga bordsuppgifter har lagts in ännu."
+      : "Inga uppgifter har lagts in ännu."}</p>`;
     return;
   }
 
@@ -951,29 +1065,37 @@ function renderPlayerChallenges(challenges) {
       const label = document.createElement("label");
       label.htmlFor = checkbox.id;
       label.textContent = challenge.description;
-      checkbox.addEventListener("change", () => setChallengeCompletion(challenge, checkbox, row));
+      checkbox.addEventListener("change", () =>
+        setChallengeCompletion(challenge, checkbox, row, isTableChallenge));
       row.append(checkbox, label);
       rows.append(row);
     });
 
     section.append(heading, rows);
-    playerChallengeList.append(section);
+    target.append(section);
   });
 }
 
-async function setChallengeCompletion(challenge, checkbox, row) {
+async function setChallengeCompletion(challenge, checkbox, row, isTableChallenge) {
   const requestedState = checkbox.checked;
   checkbox.disabled = true;
-  playerChallengeError.hidden = true;
+  const errorElement = isTableChallenge ? tableChallengeError : playerChallengeError;
+  errorElement.hidden = true;
   try {
-    const result = await api.setChallengeCompletion(currentParticipantId, challenge.id, requestedState);
+    const result = isTableChallenge
+      ? await api.setTableChallengeCompletion(currentParticipantId, challenge.id, requestedState)
+      : await api.setChallengeCompletion(currentParticipantId, challenge.id, requestedState);
     row.classList.toggle("completed", result.isCompleted);
-    score.textContent = result.score;
-    challengeScore.textContent = result.score;
+    if (isTableChallenge) {
+      tableChallengeScore.textContent = result.score;
+    } else {
+      score.textContent = result.score;
+      challengeScore.textContent = result.score;
+    }
   } catch (error) {
     checkbox.checked = !requestedState;
-    playerChallengeError.textContent = error.message;
-    playerChallengeError.hidden = false;
+    errorElement.textContent = error.message;
+    errorElement.hidden = false;
   } finally {
     checkbox.disabled = false;
   }
@@ -1081,48 +1203,66 @@ function renderChallenges(challenges) {
     return;
   }
 
-  const groups = challenges.reduce((result, challenge) => {
-    const items = result.get(challenge.points) ?? [];
-    items.push(challenge);
-    result.set(challenge.points, items);
-    return result;
-  }, new Map());
-  [...groups.entries()].sort(([left], [right]) => left - right).forEach(([points, items]) => {
-    const section = document.createElement("section");
-    const heading = document.createElement("h2");
-    heading.className = "challenge-group-title";
-    heading.textContent = `${points} poäng`;
-    const rows = document.createElement("div");
-    rows.className = "challenge-items";
+  [
+    { id: "individual", title: "Individuella uppgifter" },
+    { id: "table", title: "Bordsuppgifter" }
+  ].forEach(scope => {
+    const scopedChallenges = challenges.filter(challenge => challenge.scope === scope.id);
+    if (scopedChallenges.length === 0) return;
 
-    items.forEach(challenge => {
-      const row = document.createElement("article");
-      row.className = "challenge-row";
-      const description = document.createElement("p");
-      description.className = "challenge-description";
-      description.textContent = challenge.description;
+    const scopeSection = document.createElement("section");
+    scopeSection.className = "challenge-scope-group";
+    const scopeHeading = document.createElement("h2");
+    scopeHeading.className = "challenge-scope-title";
+    scopeHeading.textContent = scope.title;
+    scopeSection.append(scopeHeading);
 
-      const actions = document.createElement("div");
-      actions.className = "icon-actions";
-      const edit = document.createElement("button");
-      edit.type = "button";
-      edit.className = "icon-button";
-      edit.textContent = "✎";
-      edit.setAttribute("aria-label", `Ändra ${challenge.description}`);
-      edit.addEventListener("click", () => beginChallengeEdit(challenge));
-      const remove = document.createElement("button");
-      remove.type = "button";
-      remove.className = "icon-button danger";
-      remove.textContent = "🗑";
-      remove.setAttribute("aria-label", `Ta bort ${challenge.description}`);
-      remove.addEventListener("click", () => removeChallenge(challenge, remove));
-      actions.append(edit, remove);
-      row.append(description, actions);
-      rows.append(row);
+    const groups = scopedChallenges.reduce((result, challenge) => {
+      const items = result.get(challenge.points) ?? [];
+      items.push(challenge);
+      result.set(challenge.points, items);
+      return result;
+    }, new Map());
+
+    [...groups.entries()].sort(([left], [right]) => left - right).forEach(([points, items]) => {
+      const section = document.createElement("section");
+      const heading = document.createElement("h3");
+      heading.className = "challenge-group-title";
+      heading.textContent = `${points} poäng`;
+      const rows = document.createElement("div");
+      rows.className = "challenge-items";
+
+      items.forEach(challenge => {
+        const row = document.createElement("article");
+        row.className = "challenge-row";
+        const description = document.createElement("p");
+        description.className = "challenge-description";
+        description.textContent = challenge.description;
+
+        const actions = document.createElement("div");
+        actions.className = "icon-actions";
+        const edit = document.createElement("button");
+        edit.type = "button";
+        edit.className = "icon-button";
+        edit.textContent = "✎";
+        edit.setAttribute("aria-label", `Ändra ${challenge.description}`);
+        edit.addEventListener("click", () => beginChallengeEdit(challenge));
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "icon-button danger";
+        remove.textContent = "🗑";
+        remove.setAttribute("aria-label", `Ta bort ${challenge.description}`);
+        remove.addEventListener("click", () => removeChallenge(challenge, remove));
+        actions.append(edit, remove);
+        row.append(description, actions);
+        rows.append(row);
+      });
+
+      section.append(heading, rows);
+      scopeSection.append(section);
     });
 
-    section.append(heading, rows);
-    challengeList.append(section);
+    challengeList.append(scopeSection);
   });
 }
 
@@ -1133,9 +1273,9 @@ challengeForm.addEventListener("submit", async event => {
   try {
     const points = Number.parseInt(challengePoints.value, 10);
     if (challengeId.value) {
-      await api.updateChallenge(challengeId.value, challengeDescription.value, points);
+      await api.updateChallenge(challengeId.value, challengeDescription.value, points, challengeScope.value);
     } else {
-      await api.createChallenge(challengeDescription.value, points);
+      await api.createChallenge(challengeDescription.value, points, challengeScope.value);
     }
     resetChallengeForm();
     await loadChallenges();
@@ -1153,6 +1293,7 @@ function beginChallengeEdit(challenge) {
   challengeId.value = challenge.id;
   challengeDescription.value = challenge.description;
   challengePoints.value = challenge.points;
+  challengeScope.value = challenge.scope;
   saveChallengeButton.textContent = "Spara ändringar";
   cancelChallengeEditButton.hidden = false;
   challengeDescription.focus();
@@ -1162,6 +1303,7 @@ function beginChallengeEdit(challenge) {
 function resetChallengeForm() {
   challengeForm.reset();
   challengeId.value = "";
+  challengeScope.value = "individual";
   saveChallengeButton.textContent = "Lägg till uppgift";
   cancelChallengeEditButton.hidden = true;
   challengeError.hidden = true;

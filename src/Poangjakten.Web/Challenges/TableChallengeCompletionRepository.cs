@@ -26,7 +26,7 @@ public sealed class TableChallengeCompletionRepository(AzureStorageClients stora
 
     public async Task SaveAsync(ChallengeCompletion completion, CancellationToken cancellationToken)
     {
-        var entity = new TableEntity(completion.ParticipantId, completion.ChallengeId)
+        var entity = new TableEntity(completion.OwnerId, completion.ChallengeId)
         {
             ["CompletedAt"] = completion.CompletedAt
         };
@@ -34,26 +34,26 @@ public sealed class TableChallengeCompletionRepository(AzureStorageClients stora
             .UpsertEntityAsync(entity, TableUpdateMode.Replace, cancellationToken);
     }
 
-    public async Task DeleteAsync(string participantId, string challengeId, CancellationToken cancellationToken)
+    public async Task DeleteAsync(string ownerId, string challengeId, CancellationToken cancellationToken)
     {
         try
         {
             await storage.ChallengeCompletionsTable()
-                .DeleteEntityAsync(participantId, challengeId, ETag.All, cancellationToken);
+                .DeleteEntityAsync(ownerId, challengeId, ETag.All, cancellationToken);
         }
         catch (RequestFailedException exception) when (exception.Status == 404)
         {
         }
     }
 
-    public async Task DeleteAllForParticipantAsync(string participantId, CancellationToken cancellationToken)
+    public async Task DeleteAllForOwnerAsync(string ownerId, CancellationToken cancellationToken)
     {
         var table = storage.ChallengeCompletionsTable();
         await foreach (var entity in table.QueryAsync<TableEntity>(
-                           item => item.PartitionKey == participantId,
+                           item => item.PartitionKey == ownerId,
                            cancellationToken: cancellationToken))
         {
-            await table.DeleteEntityAsync(participantId, entity.RowKey, ETag.All, cancellationToken);
+            await table.DeleteEntityAsync(ownerId, entity.RowKey, ETag.All, cancellationToken);
         }
     }
 }

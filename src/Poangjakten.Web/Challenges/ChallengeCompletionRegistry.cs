@@ -6,7 +6,7 @@ public sealed class ChallengeCompletionRegistry(
     IChallengeCompletionRepository repository,
     ILogger<ChallengeCompletionRegistry> logger) : IHostedService
 {
-    private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, DateTimeOffset>> _byParticipant =
+    private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, DateTimeOffset>> _byOwner =
         new(StringComparer.Ordinal);
     private readonly SemaphoreSlim _mutationLock = new(1, 1);
 
@@ -15,7 +15,7 @@ public sealed class ChallengeCompletionRegistry(
         var completions = await repository.LoadAllAsync(cancellationToken);
         foreach (var completion in completions)
         {
-            ParticipantCompletions(completion.ParticipantId)[completion.ChallengeId] = completion.CompletedAt;
+            OwnerCompletions(completion.OwnerId)[completion.ChallengeId] = completion.CompletedAt;
         }
 
         logger.LogInformation("Loaded {CompletionCount} challenge completions into memory", completions.Count);
@@ -23,13 +23,13 @@ public sealed class ChallengeCompletionRegistry(
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
-    public IReadOnlySet<string> CompletedChallengeIds(string participantId) =>
-        _byParticipant.TryGetValue(participantId, out var completions)
+    public IReadOnlySet<string> CompletedChallengeIds(string ownerId) =>
+        _byOwner.TryGetValue(ownerId, out var completions)
             ? completions.Keys.ToHashSet(StringComparer.Ordinal)
             : new HashSet<string>(StringComparer.Ordinal);
 
     public async Task SetAsync(
-        string participantId,
+        string ownerId,
         string challengeId,
         bool isCompleted,
         CancellationToken cancellationToken)
@@ -37,18 +37,18 @@ public sealed class ChallengeCompletionRegistry(
         await _mutationLock.WaitAsync(cancellationToken);
         try
         {
-            var completions = ParticipantCompletions(participantId);
+            var completions = OwnerCompletions(ownerId);
             if (isCompleted)
             {
                 if (completions.ContainsKey(challengeId)) return;
-                var completion = new ChallengeCompletion(participantId, challengeId, DateTimeOffset.UtcNow);
+                var completion = new ChallengeCompletion(ownerId, challengeId, DateTimeOffset.UtcNow);
                 await repository.SaveAsync(completion, cancellationToken);
                 completions[challengeId] = completion.CompletedAt;
             }
             else
             {
                 if (!completions.ContainsKey(challengeId)) return;
-                await repository.DeleteAsync(participantId, challengeId, cancellationToken);
+                await repository.DeleteAsync(ownerId, challengeId, cancellationToken);
                 completions.TryRemove(challengeId, out _);
             }
         }
@@ -63,8 +63,10 @@ public sealed class ChallengeCompletionRegistry(
         await _mutationLock.WaitAsync(cancellationToken);
         try
         {
-            await repository.DeleteAllForParticipantAsync(participantId, cancellationToken);
-            _byParticipant.TryRemove(participantId, out _);
+            await repository.DeleteAllForOwnerAsync(
+                ChallengeCompletionOwners.ForParticipant(participantId),
+                cancellationToken);
+            _byOwner.TryRemove(ChallengeCompletionOwners.ForParticipant(participantId), out _);
         }
         finally
         {
@@ -72,8 +74,8 @@ public sealed class ChallengeCompletionRegistry(
         }
     }
 
-    private ConcurrentDictionary<string, DateTimeOffset> ParticipantCompletions(string participantId) =>
-        _byParticipant.GetOrAdd(
-            participantId,
+    private ConcurrentDictionary<string, DateTimeOffset> OwnerCompletions(string ownerId) =>
+        _byOwner.GetOrAdd(
+            ownerId,
             _ => new ConcurrentDictionary<string, DateTimeOffset>(StringComparer.Ordinal));
 }

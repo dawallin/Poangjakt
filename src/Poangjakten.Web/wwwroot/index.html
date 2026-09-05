@@ -48,11 +48,19 @@
       <div class="tile-grid" aria-label="Appens funktioner">
         <button id="open-challenges" class="menu-tile tile-orange tile-wide" type="button">
           <span class="tile-symbol" aria-hidden="true">✓</span>
-          <span class="menu-title">Poängjakt</span><span class="menu-caption">Kryssa i det du har gjort</span>
+          <span class="menu-title">Individuell poängjakt</span><span class="menu-caption">Kryssa i det du själv har gjort</span>
+        </button>
+        <button id="open-table-challenges" class="menu-tile tile-table-points tile-wide locked" type="button">
+          <span id="table-challenge-tile-symbol" class="tile-symbol" aria-hidden="true">🔒</span>
+          <span class="menu-title">Bordspoängjakt</span><span id="table-challenge-tile-caption" class="menu-caption">Låses upp tillsammans med borden</span>
         </button>
         <button id="open-leaderboard" class="menu-tile tile-blue" type="button">
           <span class="tile-symbol" aria-hidden="true">▲</span>
-          <span class="menu-title">Topplista</span><span class="menu-caption">Se ställningen</span>
+          <span class="menu-title">Individtopplista</span><span class="menu-caption">Se deltagarnas ställning</span>
+        </button>
+        <button id="open-table-leaderboard" class="menu-tile tile-table-leaderboard locked" type="button">
+          <span id="table-leaderboard-tile-symbol" class="tile-symbol" aria-hidden="true">🔒</span>
+          <span class="menu-title">Bordstopplista</span><span id="table-leaderboard-tile-caption" class="menu-caption">Låses upp tillsammans med borden</span>
         </button>
         <button id="open-photos" class="menu-tile tile-purple" type="button">
           <span class="tile-symbol" aria-hidden="true">▣</span>
@@ -100,7 +108,7 @@
     <section id="leaderboard-view" class="view" hidden>
       <button id="close-leaderboard" class="back-button" type="button">← Tillbaka</button>
       <p class="eyebrow">Poängjakten</p>
-      <h1 class="section-heading">Topplista</h1>
+      <h1 class="section-heading">Individtopplista</h1>
       <p class="intro">Ställningen just nu. Vid lika poäng delar deltagarna placering.</p>
       <div class="gallery-heading">
         <h2>Alla deltagare</h2>
@@ -108,6 +116,21 @@
       </div>
       <p id="leaderboard-error" class="form-error" role="alert" hidden></p>
       <div id="leaderboard-list" class="leaderboard-list" aria-live="polite">
+        <p class="muted">Hämtar ställningen…</p>
+      </div>
+    </section>
+
+    <section id="table-leaderboard-view" class="view" hidden>
+      <button id="close-table-leaderboard" class="back-button" type="button">← Tillbaka</button>
+      <p class="eyebrow">Bordspoängjakten</p>
+      <h1 class="section-heading">Bordstopplista</h1>
+      <p class="intro">Bordens gemensamma ställning. Vid lika poäng delar borden placering.</p>
+      <div class="gallery-heading">
+        <h2>Alla bord</h2>
+        <button id="refresh-table-leaderboard" type="button" class="text-button inline-text-button">Uppdatera</button>
+      </div>
+      <p id="table-leaderboard-error" class="form-error" role="alert" hidden></p>
+      <div id="table-leaderboard-list" class="leaderboard-list" aria-live="polite">
         <p class="muted">Hämtar ställningen…</p>
       </div>
     </section>
@@ -165,7 +188,7 @@
       <button id="close-challenges" class="back-button" type="button">← Tillbaka</button>
       <p class="eyebrow">Poängjakten</p>
       <div class="challenge-page-header">
-        <h1 class="section-heading">Uppgifter</h1>
+        <h1 class="section-heading">Dina uppgifter</h1>
         <div class="score-badge" aria-label="Din poäng">
           <strong id="challenge-score">0</strong><span>poäng</span>
         </div>
@@ -174,6 +197,22 @@
       <p id="player-challenge-error" class="form-error" role="alert" hidden></p>
       <div id="player-challenge-list" class="challenge-groups" aria-live="polite">
         <p class="muted">Hämtar uppgifter…</p>
+      </div>
+    </section>
+
+    <section id="table-challenges-view" class="view" hidden>
+      <button id="close-table-challenges" class="back-button" type="button">← Tillbaka</button>
+      <p class="eyebrow">Bordspoängjakten</p>
+      <div class="challenge-page-header">
+        <h1 class="section-heading">Bordsuppgifter</h1>
+        <div class="score-badge" aria-label="Bordets poäng">
+          <strong id="table-challenge-score">0</strong><span>poäng</span>
+        </div>
+      </div>
+      <p class="intro">Det räcker att en person vid bordet kryssar i uppgiften. Avprickningen och poängen gäller hela bordet.</p>
+      <p id="table-challenge-error" class="form-error" role="alert" hidden></p>
+      <div id="table-challenge-list" class="challenge-groups" aria-live="polite">
+        <p class="muted">Hämtar bordsuppgifter…</p>
       </div>
     </section>
 
@@ -212,7 +251,7 @@
       <button class="back-button close-admin" type="button">← Tillbaka</button>
       <p class="eyebrow">Administration</p>
       <h1 class="section-heading">Poängjakt</h1>
-      <p class="intro">Skapa uppgifter och ändra hur många poäng de ger.</p>
+      <p class="intro">Skapa individuella uppgifter och bordsuppgifter på samma ställe.</p>
 
       <form id="challenge-form" class="challenge-form">
         <input id="challenge-id" type="hidden">
@@ -220,6 +259,11 @@
         <textarea id="challenge-description" rows="3" minlength="3" maxlength="240" required></textarea>
         <label for="challenge-points">Poäng</label>
         <input id="challenge-points" type="number" min="1" max="1000" inputmode="numeric" required>
+        <label for="challenge-scope">Gäller för</label>
+        <select id="challenge-scope" required>
+          <option value="individual">Individ</option>
+          <option value="table">Bord</option>
+        </select>
         <p id="challenge-error" class="form-error" role="alert" hidden></p>
         <div class="form-actions">
           <button id="save-challenge" type="submit" class="primary-button">Lägg till uppgift</button>

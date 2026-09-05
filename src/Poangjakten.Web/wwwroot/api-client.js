@@ -58,6 +58,21 @@ export const api = {
         body: JSON.stringify({ isCompleted })
       });
   },
+  listTableChallenges(participantId) {
+    return request(`/api/participants/${encodeURIComponent(participantId)}/table-challenges`);
+  },
+  setTableChallengeCompletion(participantId, challengeId, isCompleted) {
+    return request(
+      `/api/participants/${encodeURIComponent(participantId)}/table-challenges/${encodeURIComponent(challengeId)}`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isCompleted })
+      });
+  },
+  listTableLeaderboard(participantId) {
+    return request(`/api/participants/${encodeURIComponent(participantId)}/table-leaderboard`);
+  },
   listParticipants() { return request("/api/admin/participants"); },
   listPartyTables() { return request("/api/admin/party-tables"); },
   listAdminPartyStages() { return request("/api/admin/party-stages"); },
@@ -86,18 +101,18 @@ export const api = {
     return request(`/api/admin/participants/${encodeURIComponent(id)}`, { method: "DELETE" });
   },
   listChallenges() { return request("/api/admin/challenges"); },
-  createChallenge(description, points) {
+  createChallenge(description, points, scope) {
     return request("/api/admin/challenges", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ description, points })
+      body: JSON.stringify({ description, points, scope })
     });
   },
-  updateChallenge(id, description, points) {
+  updateChallenge(id, description, points, scope) {
     return request(`/api/admin/challenges/${encodeURIComponent(id)}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ description, points })
+      body: JSON.stringify({ description, points, scope })
     });
   },
   deleteChallenge(id) {

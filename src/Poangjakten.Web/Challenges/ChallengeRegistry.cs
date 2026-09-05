@@ -32,9 +32,10 @@ public sealed class ChallengeRegistry(
     public async Task<ChallengeMutationResult> CreateAsync(
         string? description,
         int points,
+        string? scope,
         CancellationToken cancellationToken)
     {
-        var validationError = Validate(description, points, out var normalizedDescription);
+        var validationError = Validate(description, points, scope, out var normalizedDescription, out var normalizedScope);
         if (validationError is not null)
         {
             return ChallengeMutationResult.Invalid(validationError);
@@ -48,6 +49,7 @@ public sealed class ChallengeRegistry(
                 Guid.NewGuid().ToString("N"),
                 normalizedDescription!,
                 points,
+                normalizedScope!,
                 now,
                 now);
             await repository.SaveAsync(challenge, cancellationToken);
@@ -64,9 +66,10 @@ public sealed class ChallengeRegistry(
         string id,
         string? description,
         int points,
+        string? scope,
         CancellationToken cancellationToken)
     {
-        var validationError = Validate(description, points, out var normalizedDescription);
+        var validationError = Validate(description, points, scope, out var normalizedDescription, out var normalizedScope);
         if (validationError is not null)
         {
             return ChallengeMutationResult.Invalid(validationError);
@@ -84,6 +87,7 @@ public sealed class ChallengeRegistry(
             {
                 Description = normalizedDescription!,
                 Points = points,
+                Scope = normalizedScope!,
                 UpdatedAt = DateTimeOffset.UtcNow
             };
             await repository.SaveAsync(updated, cancellationToken);
@@ -116,15 +120,22 @@ public sealed class ChallengeRegistry(
         }
     }
 
-    private static string? Validate(string? description, int points, out string? normalizedDescription)
+    private static string? Validate(
+        string? description,
+        int points,
+        string? scope,
+        out string? normalizedDescription,
+        out string? normalizedScope)
     {
         normalizedDescription = description?.Trim();
+        normalizedScope = ChallengeScopes.Normalize(scope);
         if (normalizedDescription?.Length is not (>= 3 and <= 240))
         {
             return "Beskrivningen måste vara 3–240 tecken.";
         }
 
-        return points is < 1 or > 1000 ? "Poängen måste vara mellan 1 och 1000." : null;
+        if (points is < 1 or > 1000) return "Poängen måste vara mellan 1 och 1000.";
+        return normalizedScope is null ? "Välj om uppgiften gäller en individ eller ett bord." : null;
     }
 }
 
