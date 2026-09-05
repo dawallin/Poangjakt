@@ -3,6 +3,7 @@ using Azure.Identity;
 using Poangjakten.Web.Administration;
 using Poangjakten.Web.Challenges;
 using Poangjakten.Web.Participants;
+using Poangjakten.Web.PartyStages;
 using Poangjakten.Web.Photos;
 using Poangjakten.Web.Scoring;
 using Poangjakten.Web.Songs;
@@ -26,6 +27,9 @@ builder.Services.AddSingleton<IChallengeCompletionRepository, TableChallengeComp
 builder.Services.AddSingleton<ChallengeCompletionRegistry>();
 builder.Services.AddHostedService(serviceProvider => serviceProvider.GetRequiredService<ChallengeCompletionRegistry>());
 builder.Services.AddSingleton<ScoreService>();
+builder.Services.AddSingleton<IPartyStageRepository, TablePartyStageRepository>();
+builder.Services.AddSingleton<PartyStageRegistry>();
+builder.Services.AddHostedService(serviceProvider => serviceProvider.GetRequiredService<PartyStageRegistry>());
 builder.Services.AddSingleton<IPhotoRepository, TablePhotoRepository>();
 builder.Services.AddSingleton<PhotoRegistry>();
 builder.Services.AddHostedService(serviceProvider => serviceProvider.GetRequiredService<PhotoRegistry>());
@@ -62,6 +66,7 @@ app.MapPost("/health/storage", async (StorageDiagnostics diagnostics, Cancellati
 
 app.MapParticipantEndpoints();
 app.MapAdministrationEndpoints();
+app.MapPartyStageEndpoints();
 app.MapChallengeEndpoints();
 app.MapPhotoEndpoints();
 app.MapSongEndpoints();

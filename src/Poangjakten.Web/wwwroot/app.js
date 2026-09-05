@@ -6,11 +6,13 @@ const views = {
   loading: document.querySelector("#loading-view"),
   registration: document.querySelector("#registration-view"),
   dashboard: document.querySelector("#dashboard-view"),
+  table: document.querySelector("#table-view"),
   leaderboard: document.querySelector("#leaderboard-view"),
   challenges: document.querySelector("#challenges-view"),
   photos: document.querySelector("#photos-view"),
   songs: document.querySelector("#songs-view"),
   adminUsers: document.querySelector("#admin-users-view"),
+  adminStages: document.querySelector("#admin-stages-view"),
   adminChallenges: document.querySelector("#admin-challenges-view"),
   adminSongs: document.querySelector("#admin-songs-view")
 };
@@ -19,6 +21,11 @@ const loginCodeInput = document.querySelector("#login-code");
 const registrationError = document.querySelector("#registration-error");
 const welcomeHeading = document.querySelector("#welcome-heading");
 const participantClue = document.querySelector("#participant-clue");
+const tableTile = document.querySelector("#open-table");
+const tableTileSymbol = document.querySelector("#table-tile-symbol");
+const tableTileCaption = document.querySelector("#table-tile-caption");
+const participantTableResult = document.querySelector("#participant-table-result");
+const participantTableError = document.querySelector("#participant-table-error");
 const score = document.querySelector("#score");
 const scoreBadge = document.querySelector("#score-badge");
 const challengeScore = document.querySelector("#challenge-score");
@@ -39,6 +46,8 @@ const participantClueInput = document.querySelector("#participant-clue-input");
 const participantTable = document.querySelector("#participant-table");
 const saveParticipantButton = document.querySelector("#save-participant");
 const cancelParticipantEditButton = document.querySelector("#cancel-participant-edit");
+const adminStageList = document.querySelector("#admin-stage-list");
+const adminStageError = document.querySelector("#admin-stage-error");
 const challengeForm = document.querySelector("#challenge-form");
 const challengeId = document.querySelector("#challenge-id");
 const challengeDescription = document.querySelector("#challenge-description");
@@ -98,6 +107,7 @@ function showParticipant(participant) {
   document.querySelectorAll(".admin-only").forEach(element => { element.hidden = true; });
   document.querySelectorAll(".participant-only").forEach(element => { element.hidden = false; });
   showView("dashboard");
+  refreshPartyStageSummary();
 }
 
 function showAdmin(session) {
@@ -171,11 +181,75 @@ changeParticipantButton.addEventListener("click", async () => {
   loginCodeInput.focus();
 });
 
-document.querySelectorAll("[data-feature]").forEach(tile => {
-  tile.addEventListener("click", () => {
-    showToast("Den här delen öppnar vi i nästa steg.");
-  });
+async function refreshPartyStageSummary() {
+  try {
+    const stages = await api.listPartyStages();
+    const tableStage = stages.find(stage => stage.id === "table-reveal");
+    setTableTileState(tableStage?.isUnlocked === true);
+  } catch {
+    setTableTileState(false);
+  }
+}
+
+function setTableTileState(isUnlocked) {
+  tableTile.classList.toggle("locked", !isUnlocked);
+  tableTileSymbol.textContent = isUnlocked ? "●" : "🔒";
+  tableTileCaption.textContent = isUnlocked ? "Se bordet och dina bordskamrater" : "Väntar på att låsas upp";
+}
+
+tableTile.addEventListener("click", async () => {
+  if (!currentParticipantId) {
+    showToast("Admin har ingen egen bordsplacering.");
+    return;
+  }
+
+  showView("table");
+  await loadParticipantTable();
 });
+
+document.querySelector("#close-table").addEventListener("click", () => showView("dashboard"));
+
+async function loadParticipantTable() {
+  participantTableResult.innerHTML = '<p class="muted">Hämtar ditt bord…</p>';
+  participantTableError.hidden = true;
+  try {
+    const table = await api.getParticipantTable(currentParticipantId);
+    setTableTileState(true);
+    renderParticipantTable(table);
+  } catch (error) {
+    participantTableResult.replaceChildren();
+    participantTableError.textContent = error.message;
+    participantTableError.hidden = false;
+    setTableTileState(false);
+  }
+}
+
+function renderParticipantTable(table) {
+  participantTableResult.replaceChildren();
+  const card = document.createElement("section");
+  card.className = "table-card";
+  const label = document.createElement("p");
+  label.className = "table-number";
+  label.textContent = `Bord ${table.number}`;
+  const heading = document.createElement("h2");
+  heading.textContent = table.name;
+  const membersHeading = document.createElement("h3");
+  membersHeading.textContent = "Ni som sitter här";
+  const members = document.createElement("ul");
+  members.className = "table-member-list";
+
+  table.members.forEach(member => {
+    const item = document.createElement("li");
+    if (member.isCurrentParticipant) item.className = "current-table-member";
+    item.textContent = member.isCurrentParticipant
+      ? `${member.displayName} (du)`
+      : member.displayName;
+    members.append(item);
+  });
+
+  card.append(label, heading, membersHeading, members);
+  participantTableResult.append(card);
+}
 
 document.querySelector("#open-challenges").addEventListener("click", async () => {
   if (!currentParticipantId) {
@@ -513,6 +587,11 @@ document.querySelector("#open-admin-users").addEventListener("click", async () =
   await loadParticipants();
 });
 
+document.querySelector("#open-admin-stages").addEventListener("click", async () => {
+  showView("adminStages");
+  await loadAdminStages();
+});
+
 document.querySelector("#open-admin-challenges").addEventListener("click", async () => {
   showView("adminChallenges");
   resetChallengeForm();
@@ -528,6 +607,57 @@ document.querySelector("#open-admin-songs").addEventListener("click", async () =
 document.querySelectorAll(".close-admin").forEach(button => {
   button.addEventListener("click", () => showView("dashboard"));
 });
+
+async function loadAdminStages() {
+  adminStageList.innerHTML = '<p class="muted">Hämtar feststeg…</p>';
+  adminStageError.hidden = true;
+  try {
+    renderAdminStages(await api.listAdminPartyStages());
+  } catch (error) {
+    adminStageList.replaceChildren();
+    adminStageError.textContent = error.message;
+    adminStageError.hidden = false;
+  }
+}
+
+function renderAdminStages(stages) {
+  adminStageList.replaceChildren();
+  stages.forEach(stage => {
+    const card = document.createElement("article");
+    card.className = `stage-card${stage.isUnlocked ? " unlocked" : ""}`;
+    const info = document.createElement("div");
+    const heading = document.createElement("h2");
+    heading.textContent = stage.displayName;
+    const description = document.createElement("p");
+    description.textContent = stage.description;
+    const status = document.createElement("strong");
+    status.className = "stage-status";
+    status.textContent = stage.isUnlocked ? "Upplåst för alla" : "Låst";
+    info.append(heading, description, status);
+
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = stage.isUnlocked ? "secondary-button" : "primary-button";
+    toggle.textContent = stage.isUnlocked ? "Lås igen" : "Lås upp";
+    toggle.addEventListener("click", () => setPartyStage(stage, !stage.isUnlocked, toggle));
+    card.append(info, toggle);
+    adminStageList.append(card);
+  });
+}
+
+async function setPartyStage(stage, isUnlocked, button) {
+  button.disabled = true;
+  adminStageError.hidden = true;
+  try {
+    await api.setPartyStage(stage.id, isUnlocked);
+    if (stage.id === "table-reveal") setTableTileState(isUnlocked);
+    await loadAdminStages();
+  } catch (error) {
+    adminStageError.textContent = error.message;
+    adminStageError.hidden = false;
+    button.disabled = false;
+  }
+}
 
 async function loadAdminSongs() {
   adminSongList.innerHTML = '<p class="muted">Hämtar sånger…</p>';

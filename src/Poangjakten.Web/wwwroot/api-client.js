@@ -41,6 +41,10 @@ export const api = {
     return response.json();
   },
   getParticipant(id) { return request(`/api/participants/${encodeURIComponent(id)}`); },
+  listPartyStages() { return request("/api/party-stages"); },
+  getParticipantTable(participantId) {
+    return request(`/api/participants/${encodeURIComponent(participantId)}/table`);
+  },
   listLeaderboard() { return request("/api/participants"); },
   listParticipantChallenges(participantId) {
     return request(`/api/participants/${encodeURIComponent(participantId)}/challenges`);
@@ -56,6 +60,14 @@ export const api = {
   },
   listParticipants() { return request("/api/admin/participants"); },
   listPartyTables() { return request("/api/admin/party-tables"); },
+  listAdminPartyStages() { return request("/api/admin/party-stages"); },
+  setPartyStage(id, isUnlocked) {
+    return request(`/api/admin/party-stages/${encodeURIComponent(id)}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isUnlocked })
+    });
+  },
   createParticipant(displayName, loginCode, clue, tableId) {
     return request("/api/admin/participants", {
       method: "POST",

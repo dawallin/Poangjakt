@@ -167,7 +167,9 @@ button:disabled { opacity: .65; cursor: wait; }
 .tile-purple { background: #7c3aed; }
 .tile-green { background: #15803d; }
 .tile-navy { background: #334155; }
+.menu-tile.locked { filter: saturate(.45); }
 .tile-admin { background: #475569; }
+.tile-admin-stages { background: #9a3412; }
 .tile-admin-points { background: #0f766e; }
 .tile-admin-songs { background: #166534; }
 .tile-symbol { font-size: 1.45rem; font-weight: 900; }
@@ -330,6 +332,37 @@ button:disabled { opacity: .65; cursor: wait; }
 .participant-code { margin: .3rem 0 0; color: #fdba74; font-size: .86rem; font-weight: 800; letter-spacing: .04em; }
 .participant-clue { margin: .3rem 0 0; color: #cbd5e1; font-size: .9rem; line-height: 1.35; }
 .participant-score { margin: .2rem 0 0; color: #94a3b8; font-size: .82rem; }
+
+.participant-table-result { display: grid; }
+.table-card {
+  overflow: hidden;
+  padding: 1.2rem;
+  border: 1px solid rgba(251, 146, 60, .5);
+  border-radius: .35rem;
+  background: rgba(124, 45, 18, .28);
+}
+.table-number { margin: 0 0 .25rem; color: #fdba74; font-size: .78rem; font-weight: 850; letter-spacing: .1em; text-transform: uppercase; }
+.table-card h2 { margin: 0; font-size: clamp(2.2rem, 10vw, 3.5rem); }
+.table-card h3 { margin: 1.5rem 0 .65rem; color: #cbd5e1; font-size: .95rem; }
+.table-member-list { display: grid; gap: .5rem; margin: 0; padding: 0; list-style: none; }
+.table-member-list li { padding: .75rem .85rem; border-radius: .3rem; background: rgba(15, 23, 42, .72); font-weight: 750; }
+.table-member-list .current-table-member { background: #ea580c; color: #fff; }
+
+.admin-stage-list { display: grid; gap: .8rem; }
+.stage-card {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: .35rem;
+  background: rgba(15, 29, 51, .82);
+}
+.stage-card.unlocked { border-color: rgba(34, 197, 94, .65); background: rgba(20, 83, 45, .35); }
+.stage-card h2 { margin: 0; font-size: 1.35rem; }
+.stage-card p { margin: .45rem 0; color: #bdc8d8; line-height: 1.45; }
+.stage-status { color: #fdba74; font-size: .83rem; text-transform: uppercase; }
+.stage-card.unlocked .stage-status { color: #86efac; }
+.stage-card > button { width: 100%; margin: 0; }
 .challenge-page-header { display: flex; gap: 1rem; align-items: flex-start; justify-content: space-between; }
 
 .challenge-form,

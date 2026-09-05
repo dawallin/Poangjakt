@@ -62,13 +62,17 @@
           <span class="tile-symbol" aria-hidden="true">♫</span>
           <span class="menu-title">Sånger</span><span class="menu-caption">Allsång nära till hands</span>
         </button>
-        <button class="menu-tile tile-navy" type="button" data-feature="table">
-          <span class="tile-symbol" aria-hidden="true">●</span>
-          <span class="menu-title">Hitta ditt bord</span><span class="menu-caption">Lös din ledtråd</span>
+        <button id="open-table" class="menu-tile tile-navy locked" type="button">
+          <span id="table-tile-symbol" class="tile-symbol" aria-hidden="true">🔒</span>
+          <span class="menu-title">Hitta ditt bord</span><span id="table-tile-caption" class="menu-caption">Väntar på att låsas upp</span>
         </button>
         <button id="open-admin-users" class="menu-tile tile-admin tile-wide admin-only" type="button" hidden>
           <span class="tile-symbol" aria-hidden="true">♟</span>
-          <span class="menu-title">Administrera användare</span><span class="menu-caption">Hantera testdeltagare</span>
+          <span class="menu-title">Administrera användare</span><span class="menu-caption">Namn, koder och bord</span>
+        </button>
+        <button id="open-admin-stages" class="menu-tile tile-admin-stages tile-wide admin-only" type="button" hidden>
+          <span class="tile-symbol" aria-hidden="true">🔓</span>
+          <span class="menu-title">Administrera feststeg</span><span class="menu-caption">Lås upp kvällens delar</span>
         </button>
         <button id="open-admin-challenges" class="menu-tile tile-admin-points tile-wide admin-only" type="button" hidden>
           <span class="tile-symbol" aria-hidden="true">✦</span>
@@ -105,6 +109,17 @@
       <p id="leaderboard-error" class="form-error" role="alert" hidden></p>
       <div id="leaderboard-list" class="leaderboard-list" aria-live="polite">
         <p class="muted">Hämtar ställningen…</p>
+      </div>
+    </section>
+
+    <section id="table-view" class="view" hidden>
+      <button id="close-table" class="back-button" type="button">← Tillbaka</button>
+      <p class="eyebrow">Bordsplacering</p>
+      <h1 class="section-heading">Ditt bord</h1>
+      <p class="intro">Här ser du ditt bord och vilka du sitter tillsammans med.</p>
+      <p id="participant-table-error" class="form-error" role="alert" hidden></p>
+      <div id="participant-table-result" class="participant-table-result" aria-live="polite">
+        <p class="muted">Hämtar ditt bord…</p>
       </div>
     </section>
 
@@ -214,6 +229,17 @@
 
       <div id="challenge-list" class="challenge-groups" aria-live="polite">
         <p class="muted">Hämtar uppgifter…</p>
+      </div>
+    </section>
+
+    <section id="admin-stages-view" class="view" hidden>
+      <button class="back-button close-admin" type="button">← Tillbaka</button>
+      <p class="eyebrow">Administration</p>
+      <h1 class="section-heading">Feststeg</h1>
+      <p class="intro">Lås upp funktioner när det är dags. Du kan låsa dem igen om du behöver.</p>
+      <p id="admin-stage-error" class="form-error" role="alert" hidden></p>
+      <div id="admin-stage-list" class="admin-stage-list" aria-live="polite">
+        <p class="muted">Hämtar feststeg…</p>
       </div>
     </section>
 
