@@ -16,11 +16,13 @@ public static class SongRequestEndpoints
         {
             var participant = participants.Find(participantId);
             if (participant is null) return Results.NotFound();
-            if (!participant.HasTable) return Results.NotFound();
             if (!stages.IsUnlocked(PartyStageDefinitions.TableRevealId)) return TablesLocked();
 
             return Results.Ok(songRequests.List().Select(songRequest =>
-                SongRequestResponse.From(songRequest, songRequest.TableId == participant.TableId)));
+                SongRequestResponse.From(
+                    songRequest,
+                    IsOwnedBy(songRequest, participant),
+                    participants)));
         });
 
         routes.MapPost("/api/participants/{participantId}/song-requests", async (
@@ -33,7 +35,6 @@ public static class SongRequestEndpoints
         {
             var participant = participants.Find(participantId);
             if (participant is null) return Results.NotFound();
-            if (!participant.HasTable) return Results.NotFound();
             if (!stages.IsUnlocked(PartyStageDefinitions.TableRevealId)) return TablesLocked();
 
             var result = await songRequests.CreateAsync(
@@ -52,7 +53,7 @@ public static class SongRequestEndpoints
 
             return Results.Created(
                 $"/api/participants/{participantId}/song-requests/{result.SongRequest.Id}",
-                SongRequestResponse.From(result.SongRequest, true));
+                SongRequestResponse.From(result.SongRequest, true, participants));
         });
 
         routes.MapDelete("/api/participants/{participantId}/song-requests/{songRequestId}", async (
@@ -65,12 +66,11 @@ public static class SongRequestEndpoints
         {
             var participant = participants.Find(participantId);
             if (participant is null) return Results.NotFound();
-            if (!participant.HasTable) return Results.NotFound();
             if (!stages.IsUnlocked(PartyStageDefinitions.TableRevealId)) return TablesLocked();
 
             var songRequest = songRequests.Find(songRequestId);
             if (songRequest is null) return Results.NotFound();
-            if (songRequest.TableId != participant.TableId) return Results.Forbid();
+            if (!IsOwnedBy(songRequest, participant)) return Results.Forbid();
 
             return await songRequests.RemoveAsync(songRequestId, cancellationToken)
                 ? Results.NoContent()
@@ -80,9 +80,9 @@ public static class SongRequestEndpoints
         var admin = routes.MapGroup("/api/admin/song-requests");
         admin.AddEndpointFilter<AdminEndpointFilter>();
 
-        admin.MapGet("/", (SongRequestRegistry songRequests) =>
+        admin.MapGet("/", (SongRequestRegistry songRequests, ParticipantRegistry participants) =>
             Results.Ok(songRequests.List().Select(songRequest =>
-                SongRequestResponse.From(songRequest, false))));
+                SongRequestResponse.From(songRequest, false, participants))));
 
         admin.MapDelete("/{songRequestId}", async (
             string songRequestId,
@@ -98,6 +98,11 @@ public static class SongRequestEndpoints
     private static IResult TablesLocked() => Results.Problem(
         statusCode: StatusCodes.Status423Locked,
         title: "Låtlistan låses upp tillsammans med borden.");
+
+    private static bool IsOwnedBy(SongRequest songRequest, Participant participant) =>
+        string.IsNullOrWhiteSpace(songRequest.TableId)
+            ? songRequest.RequestedByParticipantId == participant.Id
+            : songRequest.TableId == participant.TableId;
 }
 
 public sealed record SaveSongRequest(string? Artist, string? Title);
@@ -109,20 +114,26 @@ public sealed record SongRequestResponse(
     int TableNumber,
     string TableName,
     string TableDisplayName,
-    bool IsOwnTable,
+    bool IsTableRequest,
+    bool IsOwnGroup,
     DateTimeOffset RequestedAt)
 {
-    public static SongRequestResponse From(SongRequest songRequest, bool isOwnTable)
+    public static SongRequestResponse From(
+        SongRequest songRequest,
+        bool isOwnGroup,
+        ParticipantRegistry participants)
     {
         var table = PartyTables.Find(songRequest.TableId);
+        var participant = participants.Find(songRequest.RequestedByParticipantId);
         return new(
             songRequest.Id,
             songRequest.Artist,
             songRequest.Title,
             table?.Number ?? 0,
-            table?.Name ?? "Okänt bord",
-            table?.DisplayName ?? "Okänt bord",
-            isOwnTable,
+            table?.Name ?? participant?.DisplayName ?? "Okänd deltagare",
+            table?.DisplayName ?? participant?.DisplayName ?? "Okänd deltagare",
+            table is not null,
+            isOwnGroup,
             songRequest.RequestedAt);
     }
 }

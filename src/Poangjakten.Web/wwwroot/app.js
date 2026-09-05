@@ -139,7 +139,7 @@ function showParticipant(participant) {
     element.hidden = !participant.hasTable;
   });
   showView("dashboard");
-  if (participant.hasTable) refreshPartyStageSummary();
+  refreshPartyStageSummary();
 }
 
 function showAdmin(session) {
@@ -451,7 +451,6 @@ document.querySelector("#open-songs").addEventListener("click", async () => {
 document.querySelector("#close-songs").addEventListener("click", () => showView("dashboard"));
 
 songRequestTile.addEventListener("click", async () => {
-  if (!currentIsAdmin && !currentParticipantHasTable) return;
   if (!currentParticipantId && !currentIsAdmin) return;
   showView("songRequests");
   songRequestStatus.hidden = true;
@@ -511,7 +510,7 @@ function renderSongRequests(songRequests) {
   songRequests.forEach(songRequest => {
     const row = document.createElement("article");
     row.className = "song-request-row";
-    if (songRequest.isOwnTable) row.classList.add("own-table");
+    if (songRequest.isOwnGroup) row.classList.add("own-table");
 
     const info = document.createElement("div");
     const title = document.createElement("p");
@@ -522,9 +521,15 @@ function renderSongRequests(songRequests) {
     artist.textContent = songRequest.artist;
     const table = document.createElement("p");
     table.className = "song-request-table";
-    table.textContent = songRequest.isOwnTable
-      ? `${songRequest.tableDisplayName} · ert bord`
-      : songRequest.tableDisplayName;
+    if (songRequest.isTableRequest) {
+      table.textContent = songRequest.isOwnGroup
+        ? `${songRequest.tableDisplayName} · ert bord`
+        : songRequest.tableDisplayName;
+    } else {
+      table.textContent = songRequest.isOwnGroup
+        ? "Ditt önskemål"
+        : `Önskad av ${songRequest.tableDisplayName}`;
+    }
     info.append(title, artist, table);
     row.append(info);
 
@@ -539,7 +544,7 @@ function renderSongRequests(songRequests) {
     spotifyLink.setAttribute("aria-label", `Sök efter ${songRequest.title} av ${songRequest.artist} på Spotify`);
     actions.append(spotifyLink);
 
-    if (currentIsAdmin || songRequest.isOwnTable) {
+    if (currentIsAdmin || songRequest.isOwnGroup) {
       const remove = document.createElement("button");
       remove.type = "button";
       remove.className = "icon-button danger";
