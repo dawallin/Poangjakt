@@ -537,6 +537,7 @@ button:disabled { opacity: .65; cursor: wait; }
   background: rgba(15, 29, 51, .82);
 }
 .challenge-description { margin: 0; line-height: 1.4; white-space: pre-wrap; }
+.challenge-stage-label { margin: .35rem 0 0; color: #fdba74; font-size: .78rem; font-weight: 800; }
 .icon-actions { display: flex; gap: .35rem; }
 .icon-button {
   width: 2.7rem;

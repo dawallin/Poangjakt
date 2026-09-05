@@ -13,13 +13,18 @@ public sealed record PartyStageState(
 public static class PartyStageDefinitions
 {
     public const string TableRevealId = "table-reveal";
+    public const string AfterDinnerId = "after-dinner";
 
     public static readonly IReadOnlyList<PartyStageDefinition> All =
     [
         new(
             TableRevealId,
             "Visa borden",
-            "Deltagarna kan se sitt bord och använda Låtlista, bordspoängjakten och Topplista Bord.")
+            "Deltagarna kan se sitt bord och använda Låtlista, bordspoängjakten och Topplista Bord."),
+        new(
+            AfterDinnerId,
+            "Efter maten",
+            "Poänguppgifter märkta Efter maten blir synliga för deltagarna.")
     ];
 
     private static readonly IReadOnlyDictionary<string, PartyStageDefinition> ById =

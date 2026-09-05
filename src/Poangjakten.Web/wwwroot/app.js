@@ -1,4 +1,4 @@
-import { api } from "./api-client.js?v=20260905-2";
+import { api } from "./api-client.js?v=20260905-6";
 import { compressImage, compressPhoto } from "./image-utils.js";
 
 const participantKey = "poangjakten.participantId";
@@ -69,6 +69,7 @@ const challengeId = document.querySelector("#challenge-id");
 const challengeDescription = document.querySelector("#challenge-description");
 const challengePoints = document.querySelector("#challenge-points");
 const challengeScope = document.querySelector("#challenge-scope");
+const challengeUnlockStage = document.querySelector("#challenge-unlock-stage");
 const challengeError = document.querySelector("#challenge-error");
 const challengeList = document.querySelector("#challenge-list");
 const saveChallengeButton = document.querySelector("#save-challenge");
@@ -838,8 +839,14 @@ document.querySelector("#open-admin-stages").addEventListener("click", async () 
 
 document.querySelector("#open-admin-challenges").addEventListener("click", async () => {
   showView("adminChallenges");
-  resetChallengeForm();
-  await loadChallenges();
+  try {
+    await loadChallengeStageOptions();
+    resetChallengeForm();
+    await loadChallenges();
+  } catch (error) {
+    challengeError.textContent = error.message;
+    challengeError.hidden = false;
+  }
 });
 
 document.querySelector("#open-admin-songs").addEventListener("click", async () => {
@@ -1349,6 +1356,21 @@ async function loadChallenges() {
   }
 }
 
+async function loadChallengeStageOptions() {
+  const stages = await api.listAdminPartyStages();
+  challengeUnlockStage.replaceChildren();
+  const immediate = document.createElement("option");
+  immediate.value = "";
+  immediate.textContent = "Direkt";
+  challengeUnlockStage.append(immediate);
+  stages.forEach(stage => {
+    const option = document.createElement("option");
+    option.value = stage.id;
+    option.textContent = stage.displayName;
+    challengeUnlockStage.append(option);
+  });
+}
+
 function renderChallenges(challenges) {
   challengeList.replaceChildren();
   if (challenges.length === 0) {
@@ -1388,9 +1410,17 @@ function renderChallenges(challenges) {
       items.forEach(challenge => {
         const row = document.createElement("article");
         row.className = "challenge-row";
+        const info = document.createElement("div");
         const description = document.createElement("p");
         description.className = "challenge-description";
         description.textContent = challenge.description;
+        info.append(description);
+        if (challenge.unlockStageName) {
+          const stage = document.createElement("p");
+          stage.className = "challenge-stage-label";
+          stage.textContent = `Visas: ${challenge.unlockStageName}`;
+          info.append(stage);
+        }
 
         const actions = document.createElement("div");
         actions.className = "icon-actions";
@@ -1407,7 +1437,7 @@ function renderChallenges(challenges) {
         remove.setAttribute("aria-label", `Ta bort ${challenge.description}`);
         remove.addEventListener("click", () => removeChallenge(challenge, remove));
         actions.append(edit, remove);
-        row.append(description, actions);
+        row.append(info, actions);
         rows.append(row);
       });
 
@@ -1426,9 +1456,18 @@ challengeForm.addEventListener("submit", async event => {
   try {
     const points = Number.parseInt(challengePoints.value, 10);
     if (challengeId.value) {
-      await api.updateChallenge(challengeId.value, challengeDescription.value, points, challengeScope.value);
+      await api.updateChallenge(
+        challengeId.value,
+        challengeDescription.value,
+        points,
+        challengeScope.value,
+        challengeUnlockStage.value);
     } else {
-      await api.createChallenge(challengeDescription.value, points, challengeScope.value);
+      await api.createChallenge(
+        challengeDescription.value,
+        points,
+        challengeScope.value,
+        challengeUnlockStage.value);
     }
     resetChallengeForm();
     await loadChallenges();
@@ -1447,6 +1486,7 @@ function beginChallengeEdit(challenge) {
   challengeDescription.value = challenge.description;
   challengePoints.value = challenge.points;
   challengeScope.value = challenge.scope;
+  challengeUnlockStage.value = challenge.unlockStageId ?? "";
   saveChallengeButton.textContent = "Spara ändringar";
   cancelChallengeEditButton.hidden = false;
   challengeDescription.focus();
@@ -1457,6 +1497,7 @@ function resetChallengeForm() {
   challengeForm.reset();
   challengeId.value = "";
   challengeScope.value = "individual";
+  challengeUnlockStage.value = "";
   saveChallengeButton.textContent = "Lägg till uppgift";
   cancelChallengeEditButton.hidden = true;
   challengeError.hidden = true;

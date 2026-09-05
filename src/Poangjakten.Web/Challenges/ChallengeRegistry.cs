@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Poangjakten.Web.PartyStages;
 
 namespace Poangjakten.Web.Challenges;
 
@@ -33,9 +34,17 @@ public sealed class ChallengeRegistry(
         string? description,
         int points,
         string? scope,
+        string? unlockStageId,
         CancellationToken cancellationToken)
     {
-        var validationError = Validate(description, points, scope, out var normalizedDescription, out var normalizedScope);
+        var validationError = Validate(
+            description,
+            points,
+            scope,
+            unlockStageId,
+            out var normalizedDescription,
+            out var normalizedScope,
+            out var normalizedUnlockStageId);
         if (validationError is not null)
         {
             return ChallengeMutationResult.Invalid(validationError);
@@ -50,6 +59,7 @@ public sealed class ChallengeRegistry(
                 normalizedDescription!,
                 points,
                 normalizedScope!,
+                normalizedUnlockStageId,
                 now,
                 now);
             await repository.SaveAsync(challenge, cancellationToken);
@@ -67,9 +77,17 @@ public sealed class ChallengeRegistry(
         string? description,
         int points,
         string? scope,
+        string? unlockStageId,
         CancellationToken cancellationToken)
     {
-        var validationError = Validate(description, points, scope, out var normalizedDescription, out var normalizedScope);
+        var validationError = Validate(
+            description,
+            points,
+            scope,
+            unlockStageId,
+            out var normalizedDescription,
+            out var normalizedScope,
+            out var normalizedUnlockStageId);
         if (validationError is not null)
         {
             return ChallengeMutationResult.Invalid(validationError);
@@ -88,6 +106,7 @@ public sealed class ChallengeRegistry(
                 Description = normalizedDescription!,
                 Points = points,
                 Scope = normalizedScope!,
+                UnlockStageId = normalizedUnlockStageId,
                 UpdatedAt = DateTimeOffset.UtcNow
             };
             await repository.SaveAsync(updated, cancellationToken);
@@ -124,18 +143,26 @@ public sealed class ChallengeRegistry(
         string? description,
         int points,
         string? scope,
+        string? unlockStageId,
         out string? normalizedDescription,
-        out string? normalizedScope)
+        out string? normalizedScope,
+        out string? normalizedUnlockStageId)
     {
         normalizedDescription = description?.Trim();
         normalizedScope = ChallengeScopes.Normalize(scope);
+        normalizedUnlockStageId = string.IsNullOrWhiteSpace(unlockStageId)
+            ? null
+            : PartyStageDefinitions.Find(unlockStageId)?.Id;
         if (normalizedDescription?.Length is not (>= 3 and <= 240))
         {
             return "Beskrivningen måste vara 3–240 tecken.";
         }
 
         if (points is < 1 or > 1000) return "Poängen måste vara mellan 1 och 1000.";
-        return normalizedScope is null ? "Välj om uppgiften gäller en individ eller ett bord." : null;
+        if (normalizedScope is null) return "Välj om uppgiften gäller en individ eller ett bord.";
+        return !string.IsNullOrWhiteSpace(unlockStageId) && normalizedUnlockStageId is null
+            ? "Välj ett giltigt feststeg."
+            : null;
     }
 }
 

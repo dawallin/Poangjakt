@@ -1,4 +1,5 @@
 using Azure.Data.Tables;
+using Poangjakten.Web.PartyStages;
 using Poangjakten.Web.Storage;
 
 namespace Poangjakten.Web.Challenges;
@@ -33,6 +34,10 @@ public sealed class TableChallengeRepository(AzureStorageClients storage) : ICha
             ["CreatedAt"] = challenge.CreatedAt,
             ["UpdatedAt"] = challenge.UpdatedAt
         };
+        if (challenge.UnlockStageId is not null)
+        {
+            entity["UnlockStageId"] = challenge.UnlockStageId;
+        }
 
         await storage.ChallengesTable().UpsertEntityAsync(entity, TableUpdateMode.Replace, cancellationToken);
     }
@@ -48,6 +53,7 @@ public sealed class TableChallengeRepository(AzureStorageClients storage) : ICha
         entity.GetString("Description") ?? "Uppgift utan beskrivning",
         entity.GetInt32("Points") ?? 0,
         ChallengeScopes.Normalize(entity.GetString("Scope")) ?? ChallengeScopes.Individual,
+        PartyStageDefinitions.Find(entity.GetString("UnlockStageId"))?.Id,
         entity.GetDateTimeOffset("CreatedAt") ?? entity.Timestamp ?? DateTimeOffset.UtcNow,
         entity.GetDateTimeOffset("UpdatedAt") ?? entity.Timestamp ?? DateTimeOffset.UtcNow);
 }

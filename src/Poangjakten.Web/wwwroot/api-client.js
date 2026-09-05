@@ -120,18 +120,18 @@ export const api = {
     return request(`/api/admin/participants/${encodeURIComponent(id)}`, { method: "DELETE" });
   },
   listChallenges() { return request("/api/admin/challenges"); },
-  createChallenge(description, points, scope) {
+  createChallenge(description, points, scope, unlockStageId) {
     return request("/api/admin/challenges", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ description, points, scope })
+      body: JSON.stringify({ description, points, scope, unlockStageId })
     });
   },
-  updateChallenge(id, description, points, scope) {
+  updateChallenge(id, description, points, scope, unlockStageId) {
     return request(`/api/admin/challenges/${encodeURIComponent(id)}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ description, points, scope })
+      body: JSON.stringify({ description, points, scope, unlockStageId })
     });
   },
   deleteChallenge(id) {

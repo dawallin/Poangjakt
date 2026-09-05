@@ -9,22 +9,23 @@ public static class ChallengeEndpoints
 {
     public static IEndpointRouteBuilder MapChallengeEndpoints(this IEndpointRouteBuilder routes)
     {
-        routes.MapGet("/api/challenges", (ChallengeRegistry registry) =>
+        routes.MapGet("/api/challenges", (ChallengeRegistry registry, PartyStageRegistry stages) =>
             Results.Ok(registry.List()
-                .Where(challenge => challenge.Scope == ChallengeScopes.Individual)
+                .Where(challenge => challenge.Scope == ChallengeScopes.Individual && IsVisible(challenge, stages))
                 .Select(ChallengeResponse.From)));
 
         routes.MapGet("/api/participants/{participantId}/challenges", (
             string participantId,
             ParticipantRegistry participants,
             ChallengeRegistry challenges,
-            ChallengeCompletionRegistry completions) =>
+            ChallengeCompletionRegistry completions,
+            PartyStageRegistry stages) =>
         {
             if (participants.Find(participantId) is null) return Results.NotFound();
             var completedIds = completions.CompletedChallengeIds(
                 ChallengeCompletionOwners.ForParticipant(participantId));
             return Results.Ok(challenges.List()
-                .Where(challenge => challenge.Scope == ChallengeScopes.Individual)
+                .Where(challenge => challenge.Scope == ChallengeScopes.Individual && IsVisible(challenge, stages))
                 .Select(challenge => ParticipantChallengeResponse.From(
                     challenge,
                     completedIds.Contains(challenge.Id))));
@@ -37,12 +38,14 @@ public static class ChallengeEndpoints
             ParticipantRegistry participants,
             ChallengeRegistry challenges,
             ChallengeCompletionRegistry completions,
+            PartyStageRegistry stages,
             ScoreService scores,
             CancellationToken cancellationToken) =>
         {
             var participant = participants.Find(participantId);
             var challenge = challenges.Find(challengeId);
             if (participant is null || challenge?.Scope != ChallengeScopes.Individual) return Results.NotFound();
+            if (!IsVisible(challenge, stages)) return Results.NotFound();
 
             await completions.SetAsync(
                 ChallengeCompletionOwners.ForParticipant(participantId),
@@ -70,7 +73,7 @@ public static class ChallengeEndpoints
             var completedIds = completions.CompletedChallengeIds(
                 ChallengeCompletionOwners.ForTable(participant.TableId));
             return Results.Ok(challenges.List()
-                .Where(challenge => challenge.Scope == ChallengeScopes.Table)
+                .Where(challenge => challenge.Scope == ChallengeScopes.Table && IsVisible(challenge, stages))
                 .Select(challenge => ParticipantChallengeResponse.From(
                     challenge,
                     completedIds.Contains(challenge.Id))));
@@ -92,6 +95,7 @@ public static class ChallengeEndpoints
             if (participant is null || challenge?.Scope != ChallengeScopes.Table) return Results.NotFound();
             if (!participant.HasTable) return Results.NotFound();
             if (!stages.IsUnlocked(PartyStageDefinitions.TableRevealId)) return TablesLocked();
+            if (!IsVisible(challenge, stages)) return Results.NotFound();
 
             await completions.SetAsync(
                 ChallengeCompletionOwners.ForTable(participant.TableId),
@@ -142,6 +146,7 @@ public static class ChallengeEndpoints
                 request.Description,
                 request.Points,
                 request.Scope,
+                request.UnlockStageId,
                 cancellationToken);
             return ToHttpResult(result, created: true);
         });
@@ -157,6 +162,7 @@ public static class ChallengeEndpoints
                 request.Description,
                 request.Points,
                 request.Scope,
+                request.UnlockStageId,
                 cancellationToken);
             return ToHttpResult(result, created: false);
         });
@@ -176,6 +182,9 @@ public static class ChallengeEndpoints
     private static IResult TablesLocked() => Results.Problem(
         statusCode: StatusCodes.Status423Locked,
         title: "Bordsfunktionerna har inte låsts upp ännu.");
+
+    private static bool IsVisible(Challenge challenge, PartyStageRegistry stages) =>
+        challenge.UnlockStageId is null || stages.IsUnlocked(challenge.UnlockStageId);
 
     private static IResult ToHttpResult(ChallengeMutationResult result, bool created)
     {
@@ -199,12 +208,28 @@ public static class ChallengeEndpoints
     }
 }
 
-public sealed record SaveChallengeRequest(string? Description, int Points, string? Scope);
+public sealed record SaveChallengeRequest(
+    string? Description,
+    int Points,
+    string? Scope,
+    string? UnlockStageId);
 
-public sealed record ChallengeResponse(string Id, string Description, int Points, string Scope)
+public sealed record ChallengeResponse(
+    string Id,
+    string Description,
+    int Points,
+    string Scope,
+    string? UnlockStageId,
+    string? UnlockStageName)
 {
     public static ChallengeResponse From(Challenge challenge) =>
-        new(challenge.Id, challenge.Description, challenge.Points, challenge.Scope);
+        new(
+            challenge.Id,
+            challenge.Description,
+            challenge.Points,
+            challenge.Scope,
+            challenge.UnlockStageId,
+            PartyStageDefinitions.Find(challenge.UnlockStageId)?.DisplayName);
 }
 
 public sealed record ParticipantChallengeResponse(string Id, string Description, int Points, bool IsCompleted)

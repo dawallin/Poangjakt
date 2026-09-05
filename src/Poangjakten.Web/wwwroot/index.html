@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#101828">
   <title>Poängjakten</title>
-  <link rel="stylesheet" href="/styles.css?v=20260905-5">
+  <link rel="stylesheet" href="/styles.css?v=20260905-6">
 </head>
 <body>
   <main class="shell">
@@ -293,6 +293,10 @@
           <option value="individual">Individ</option>
           <option value="table">Bord</option>
         </select>
+        <label for="challenge-unlock-stage">Blir synlig</label>
+        <select id="challenge-unlock-stage">
+          <option value="">Direkt</option>
+        </select>
         <p id="challenge-error" class="form-error" role="alert" hidden></p>
         <div class="form-actions">
           <button id="save-challenge" type="submit" class="primary-button">Lägg till uppgift</button>
@@ -361,6 +365,6 @@
     <img id="dialog-photo" alt="">
     <p id="photo-dialog-meta"></p>
   </dialog>
-  <script type="module" src="/app.js?v=20260905-5"></script>
+  <script type="module" src="/app.js?v=20260905-6"></script>
 </body>
 </html>

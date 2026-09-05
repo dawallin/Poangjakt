@@ -5,6 +5,7 @@ public sealed record Challenge(
     string Description,
     int Points,
     string Scope,
+    string? UnlockStageId,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt);
 

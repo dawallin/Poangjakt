@@ -44,6 +44,8 @@ för ett bord.
 
 Poänguppgifterna ligger i en egen `challenges`-tabell. De laddas till minnet vid
 uppstart och alla adminändringar skrivs igenom till Table Storage innan minnet ändras.
+En uppgift kan kopplas till ett feststeg via `UnlockStageId`; då filtreras den bort från
+deltagarvyer och poängberäkning tills administratören låser upp steget.
 
 Varje deltagares utförda uppgifter ligger i `challengecompletions`, partitionerade per
 deltagare. Markeringar kan sättas och tas bort fritt. Totalpoängen beräknas från de
