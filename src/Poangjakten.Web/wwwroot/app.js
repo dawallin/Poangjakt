@@ -1,4 +1,4 @@
-import { api } from "./api-client.js?v=20260905-1";
+import { api } from "./api-client.js?v=20260905-2";
 import { compressImage, compressPhoto } from "./image-utils.js";
 
 const participantKey = "poangjakten.participantId";
@@ -13,6 +13,7 @@ const views = {
   tableChallenges: document.querySelector("#table-challenges-view"),
   photos: document.querySelector("#photos-view"),
   songs: document.querySelector("#songs-view"),
+  songRequests: document.querySelector("#song-requests-view"),
   adminUsers: document.querySelector("#admin-users-view"),
   adminStages: document.querySelector("#admin-stages-view"),
   adminChallenges: document.querySelector("#admin-challenges-view"),
@@ -32,6 +33,9 @@ const tableChallengeTileCaption = document.querySelector("#table-challenge-tile-
 const tableLeaderboardTile = document.querySelector("#open-table-leaderboard");
 const tableLeaderboardTileSymbol = document.querySelector("#table-leaderboard-tile-symbol");
 const tableLeaderboardTileCaption = document.querySelector("#table-leaderboard-tile-caption");
+const songRequestTile = document.querySelector("#open-song-requests");
+const songRequestTileSymbol = document.querySelector("#song-request-tile-symbol");
+const songRequestTileCaption = document.querySelector("#song-request-tile-caption");
 const participantTableResult = document.querySelector("#participant-table-result");
 const participantTableError = document.querySelector("#participant-table-error");
 const score = document.querySelector("#score");
@@ -100,6 +104,13 @@ const adminSongStatus = document.querySelector("#admin-song-status");
 const adminSongList = document.querySelector("#admin-song-list");
 const saveSongButton = document.querySelector("#save-song");
 const cancelSongEditButton = document.querySelector("#cancel-song-edit");
+const songRequestForm = document.querySelector("#song-request-form");
+const songRequestArtist = document.querySelector("#song-request-artist");
+const songRequestTitle = document.querySelector("#song-request-title");
+const saveSongRequestButton = document.querySelector("#save-song-request");
+const songRequestStatus = document.querySelector("#song-request-status");
+const songRequestError = document.querySelector("#song-request-error");
+const songRequestList = document.querySelector("#song-request-list");
 let toastTimer;
 let currentParticipantId = null;
 let currentIsAdmin = false;
@@ -132,6 +143,7 @@ function showAdmin(session) {
   document.querySelectorAll(".admin-only").forEach(element => { element.hidden = false; });
   document.querySelectorAll(".participant-only").forEach(element => { element.hidden = true; });
   showView("dashboard");
+  refreshPartyStageSummary();
 }
 
 async function restoreParticipant() {
@@ -218,6 +230,11 @@ function setTableTileState(isUnlocked) {
   tableLeaderboardTileSymbol.textContent = isUnlocked ? "▲" : "🔒";
   tableLeaderboardTileCaption.textContent = isUnlocked
     ? "Se bordens ställning"
+    : "Låses upp tillsammans med borden";
+  songRequestTile.classList.toggle("locked", !isUnlocked);
+  songRequestTileSymbol.textContent = isUnlocked ? "♫" : "🔒";
+  songRequestTileCaption.textContent = isUnlocked
+    ? "Önska musik tillsammans med bordet"
     : "Låses upp tillsammans med borden";
 }
 
@@ -423,6 +440,115 @@ document.querySelector("#open-songs").addEventListener("click", async () => {
 });
 
 document.querySelector("#close-songs").addEventListener("click", () => showView("dashboard"));
+
+songRequestTile.addEventListener("click", async () => {
+  if (!currentParticipantId && !currentIsAdmin) return;
+  showView("songRequests");
+  songRequestStatus.hidden = true;
+  await loadSongRequests();
+});
+
+document.querySelector("#close-song-requests").addEventListener("click", () => showView("dashboard"));
+document.querySelector("#refresh-song-requests").addEventListener("click", loadSongRequests);
+
+songRequestForm.addEventListener("submit", async event => {
+  event.preventDefault();
+  songRequestError.hidden = true;
+  songRequestStatus.hidden = true;
+  if (!currentParticipantId) return;
+
+  saveSongRequestButton.disabled = true;
+  try {
+    await api.createSongRequest(currentParticipantId, songRequestArtist.value, songRequestTitle.value);
+    songRequestForm.reset();
+    songRequestStatus.textContent = "Låten är tillagd på ert bord!";
+    songRequestStatus.hidden = false;
+    await loadSongRequests();
+    songRequestArtist.focus();
+  } catch (error) {
+    songRequestError.textContent = error.message;
+    songRequestError.hidden = false;
+    if (error.message.includes("låses upp")) setTableTileState(false);
+  } finally {
+    saveSongRequestButton.disabled = false;
+  }
+});
+
+async function loadSongRequests() {
+  songRequestList.innerHTML = '<p class="muted">Hämtar låtönskemål…</p>';
+  songRequestError.hidden = true;
+  try {
+    const songRequests = currentIsAdmin
+      ? await api.listAdminSongRequests()
+      : await api.listSongRequests(currentParticipantId);
+    if (!currentIsAdmin) setTableTileState(true);
+    renderSongRequests(songRequests);
+  } catch (error) {
+    songRequestList.replaceChildren();
+    songRequestError.textContent = error.message;
+    songRequestError.hidden = false;
+    if (!currentIsAdmin) setTableTileState(false);
+  }
+}
+
+function renderSongRequests(songRequests) {
+  songRequestList.replaceChildren();
+  if (songRequests.length === 0) {
+    songRequestList.innerHTML = '<p class="muted">Inga låtar har önskats ännu. Bli först!</p>';
+    return;
+  }
+
+  songRequests.forEach(songRequest => {
+    const row = document.createElement("article");
+    row.className = "song-request-row";
+    if (songRequest.isOwnTable) row.classList.add("own-table");
+
+    const info = document.createElement("div");
+    const title = document.createElement("p");
+    title.className = "song-request-title";
+    title.textContent = songRequest.title;
+    const artist = document.createElement("p");
+    artist.className = "song-request-artist";
+    artist.textContent = songRequest.artist;
+    const table = document.createElement("p");
+    table.className = "song-request-table";
+    table.textContent = songRequest.isOwnTable
+      ? `${songRequest.tableDisplayName} · ert bord`
+      : songRequest.tableDisplayName;
+    info.append(title, artist, table);
+    row.append(info);
+
+    if (currentIsAdmin || songRequest.isOwnTable) {
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "icon-button danger";
+      remove.textContent = "🗑";
+      remove.setAttribute("aria-label", `Ta bort ${songRequest.title} av ${songRequest.artist}`);
+      remove.addEventListener("click", () => removeSongRequest(songRequest, remove));
+      row.append(remove);
+    }
+
+    songRequestList.append(row);
+  });
+}
+
+async function removeSongRequest(songRequest, button) {
+  if (!window.confirm(`Ta bort ”${songRequest.title}” av ${songRequest.artist}?`)) return;
+  button.disabled = true;
+  songRequestError.hidden = true;
+  try {
+    if (currentIsAdmin) {
+      await api.deleteSongRequest(songRequest.id);
+    } else {
+      await api.deleteTableSongRequest(currentParticipantId, songRequest.id);
+    }
+    await loadSongRequests();
+  } catch (error) {
+    songRequestError.textContent = error.message;
+    songRequestError.hidden = false;
+    button.disabled = false;
+  }
+}
 
 photoFiles.addEventListener("change", () => {
   const count = photoFiles.files?.length ?? 0;

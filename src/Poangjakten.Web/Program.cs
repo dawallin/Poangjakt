@@ -6,6 +6,7 @@ using Poangjakten.Web.Participants;
 using Poangjakten.Web.PartyStages;
 using Poangjakten.Web.Photos;
 using Poangjakten.Web.Scoring;
+using Poangjakten.Web.SongRequests;
 using Poangjakten.Web.Songs;
 using Poangjakten.Web.Storage;
 
@@ -40,6 +41,9 @@ builder.Services.AddSingleton<SongRegistry>();
 builder.Services.AddHostedService(serviceProvider => serviceProvider.GetRequiredService<SongRegistry>());
 builder.Services.AddSingleton<SongBlobStore>();
 builder.Services.AddSingleton<SongService>();
+builder.Services.AddSingleton<ISongRequestRepository, TableSongRequestRepository>();
+builder.Services.AddSingleton<SongRequestRegistry>();
+builder.Services.AddHostedService(serviceProvider => serviceProvider.GetRequiredService<SongRequestRegistry>());
 builder.Services.Configure<AdminOptions>(builder.Configuration.GetSection("Admin"));
 builder.Services.AddSingleton<AdminSessionService>();
 builder.Services.AddScoped<AdminEndpointFilter>();
@@ -77,6 +81,7 @@ app.MapPartyStageEndpoints();
 app.MapChallengeEndpoints();
 app.MapPhotoEndpoints();
 app.MapSongEndpoints();
+app.MapSongRequestEndpoints();
 
 app.MapFallbackToFile("index.html");
 

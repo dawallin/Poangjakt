@@ -11,7 +11,7 @@ utvecklas eller bytas utan att resten av appen behöver skrivas om.
 
 - `/` – mobilanpassad frontend
 - `/api/hello` – enkelt API-anrop som visas i frontend
-- `POST /api/participants/register` – registrerar eller återupptar en deltagare via namn
+- `POST /api/participants/login` – loggar in en förregistrerad deltagare med kod
 - `GET /api/participants/{id}` – hämtar en deltagare från minnesregistret
 - `GET /api/participants` – listar deltagarna i poängordning
 - `DELETE /api/participants/{participantId}/photos/{id}` – låter deltagaren radera en egen bild
@@ -28,12 +28,14 @@ utvecklas eller bytas utan att resten av appen behöver skrivas om.
 - `GET /api/songs` – listar sånger från minnet i visningsordning
 - `GET /api/songs/{id}/image` – hämtar en valfri sångbild från blobcontainern
 - `/api/admin/songs` – skapa, ändra, sortera och radera sånger samt hantera bilder
+- `/api/participants/{id}/song-requests` – lista, skapa och radera bordets låtönskemål
+- `/api/admin/song-requests` – lista och radera alla låtönskemål som admin
 - `/health` – health check för Azure App Service
 - `POST /health/storage` – skriver, läser och raderar testdata i Table och Blob Storage
 
-Det vanliga namnfältet används även för admininloggning. Om värdet matchar
+Det vanliga kodfältet används även för admininloggning. Om värdet matchar
 `Admin__Secret` startas en adminsession och `Admin__DisplayName` visas; annars
-registreras en vanlig deltagare.
+loggas en förregistrerad deltagare in.
 
 Poänguppgifterna ligger i en egen `challenges`-tabell. De laddas till minnet vid
 uppstart och alla adminändringar skrivs igenom till Table Storage innan minnet ändras.
@@ -51,6 +53,11 @@ Sångernas titel, melodi, text och visningsordning lagras i Table Storage-tabell
 `songs` och läses till minnet vid uppstart. Valfria illustrationer komprimeras i
 webbläsaren och sparas under `songs/` i den privata blobcontainern. Källdokument som
 PDF eller PowerPoint ingår inte i applikationsrepot.
+
+Låtönskemål är en separat funktion från sånghäftet. Artist, låt, bord och skapare
+lagras i tabellen `songrequests` och laddas till minnet vid uppstart. Deltagarna ser
+hela kvällens lista, medan det egna bordets önskemål markeras och kan tas bort av
+vilken bordskamrat som helst. Funktionen låses upp tillsammans med bordsplaceringen.
 
 ## Azure
 

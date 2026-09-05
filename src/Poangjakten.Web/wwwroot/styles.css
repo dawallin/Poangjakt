@@ -169,6 +169,7 @@ button:disabled { opacity: .65; cursor: wait; }
 .tile-purple { background: #7c3aed; }
 .tile-green { background: #15803d; }
 .tile-navy { background: #334155; }
+.tile-song-requests { background: #be185d; }
 .menu-tile.locked { filter: saturate(.45); }
 .tile-admin { background: #475569; }
 .tile-admin-stages { background: #9a3412; }
@@ -368,7 +369,8 @@ button:disabled { opacity: .65; cursor: wait; }
 .challenge-page-header { display: flex; gap: 1rem; align-items: flex-start; justify-content: space-between; }
 
 .challenge-form,
-.participant-form {
+.participant-form,
+.song-request-form {
   display: grid;
   gap: .65rem;
   margin-bottom: 2rem;
@@ -388,13 +390,14 @@ button:disabled { opacity: .65; cursor: wait; }
   background: rgba(15, 29, 51, .82);
 }
 
-.challenge-form label, .participant-form label, .song-form label { font-size: .78rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.challenge-form label, .participant-form label, .song-form label, .song-request-form label { font-size: .78rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
 .challenge-form textarea,
 .challenge-form input[type="number"],
 .challenge-form select,
 .participant-form textarea,
 .participant-form input[type="text"],
 .participant-form select,
+.song-request-form input[type="text"],
 .song-form textarea,
 .song-form input[type="text"],
 .song-form input[type="number"],
@@ -413,6 +416,7 @@ button:disabled { opacity: .65; cursor: wait; }
 .participant-form textarea:focus,
 .participant-form input:focus,
 .participant-form select:focus,
+.song-request-form input:focus,
 .song-form textarea:focus,
 .song-form input:focus { border-color: #fb923c; }
 .challenge-form textarea, .participant-form textarea, .song-form textarea { resize: vertical; }
@@ -420,6 +424,22 @@ button:disabled { opacity: .65; cursor: wait; }
 .code-input { text-transform: uppercase; }
 .optional { color: #94a3b8; font-weight: 600; letter-spacing: 0; text-transform: none; }
 .form-actions { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: .35rem; }
+
+.song-request-list { display: grid; gap: .55rem; }
+.song-request-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: .75rem;
+  align-items: center;
+  padding: .9rem;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: .35rem;
+  background: rgba(15, 29, 51, .82);
+}
+.song-request-row.own-table { border-color: rgba(244, 114, 182, .75); background: rgba(131, 24, 67, .26); }
+.song-request-title { margin: 0; font-size: 1.08rem; font-weight: 850; overflow-wrap: anywhere; }
+.song-request-artist { margin: .2rem 0 0; color: #fbcfe8; overflow-wrap: anywhere; }
+.song-request-table { margin: .35rem 0 0; color: #94a3b8; font-size: .8rem; }
 
 .song-list { display: grid; gap: .7rem; }
 .song-card {

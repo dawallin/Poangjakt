@@ -73,6 +73,25 @@ export const api = {
   listTableLeaderboard(participantId) {
     return request(`/api/participants/${encodeURIComponent(participantId)}/table-leaderboard`);
   },
+  listSongRequests(participantId) {
+    return request(`/api/participants/${encodeURIComponent(participantId)}/song-requests`);
+  },
+  createSongRequest(participantId, artist, title) {
+    return request(`/api/participants/${encodeURIComponent(participantId)}/song-requests`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ artist, title })
+    });
+  },
+  deleteTableSongRequest(participantId, songRequestId) {
+    return request(
+      `/api/participants/${encodeURIComponent(participantId)}/song-requests/${encodeURIComponent(songRequestId)}`,
+      { method: "DELETE" });
+  },
+  listAdminSongRequests() { return request("/api/admin/song-requests"); },
+  deleteSongRequest(songRequestId) {
+    return request(`/api/admin/song-requests/${encodeURIComponent(songRequestId)}`, { method: "DELETE" });
+  },
   listParticipants() { return request("/api/admin/participants"); },
   listPartyTables() { return request("/api/admin/party-tables"); },
   listAdminPartyStages() { return request("/api/admin/party-stages"); },
