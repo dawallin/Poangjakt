@@ -72,6 +72,15 @@ public sealed class AzureStorageClients
         return service.GetTableClient(_options.SongRequestsTableName);
     }
 
+    public TableClient SpecialAnswersTable()
+    {
+        EnsureConfigured(_options.SpecialAnswersTableName, nameof(_options.SpecialAnswersTableName));
+        var service = new TableServiceClient(
+            new Uri($"https://{AccountName()}.table.core.windows.net"),
+            _credential);
+        return service.GetTableClient(_options.SpecialAnswersTableName);
+    }
+
     public TableClient AppStateTable()
     {
         EnsureConfigured(_options.AppStateTableName, nameof(_options.AppStateTableName));

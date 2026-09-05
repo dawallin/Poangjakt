@@ -58,6 +58,18 @@ export const api = {
         body: JSON.stringify({ isCompleted })
       });
   },
+  listSpecialQuestions(participantId) {
+    return request(`/api/participants/${encodeURIComponent(participantId)}/special-questions`);
+  },
+  setSpecialAnswer(participantId, questionId, value) {
+    return request(
+      `/api/participants/${encodeURIComponent(participantId)}/special-questions/${encodeURIComponent(questionId)}`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ value })
+      });
+  },
   listTableChallenges(participantId) {
     return request(`/api/participants/${encodeURIComponent(participantId)}/table-challenges`);
   },

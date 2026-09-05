@@ -8,6 +8,7 @@ using Poangjakten.Web.Photos;
 using Poangjakten.Web.Scoring;
 using Poangjakten.Web.SongRequests;
 using Poangjakten.Web.Songs;
+using Poangjakten.Web.SpecialQuestions;
 using Poangjakten.Web.Storage;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -27,6 +28,9 @@ builder.Services.AddHostedService(serviceProvider => serviceProvider.GetRequired
 builder.Services.AddSingleton<IChallengeCompletionRepository, TableChallengeCompletionRepository>();
 builder.Services.AddSingleton<ChallengeCompletionRegistry>();
 builder.Services.AddHostedService(serviceProvider => serviceProvider.GetRequiredService<ChallengeCompletionRegistry>());
+builder.Services.AddSingleton<ISpecialAnswerRepository, TableSpecialAnswerRepository>();
+builder.Services.AddSingleton<SpecialAnswerRegistry>();
+builder.Services.AddHostedService(serviceProvider => serviceProvider.GetRequiredService<SpecialAnswerRegistry>());
 builder.Services.AddSingleton<ScoreService>();
 builder.Services.AddSingleton<IPartyStageRepository, TablePartyStageRepository>();
 builder.Services.AddSingleton<PartyStageRegistry>();
@@ -82,6 +86,7 @@ app.MapChallengeEndpoints();
 app.MapPhotoEndpoints();
 app.MapSongEndpoints();
 app.MapSongRequestEndpoints();
+app.MapSpecialQuestionEndpoints();
 
 app.MapFallbackToFile("index.html");
 

@@ -1,4 +1,4 @@
-import { api } from "./api-client.js?v=20260905-6";
+import { api } from "./api-client.js?v=20260905-7";
 import { compressImage, compressPhoto } from "./image-utils.js";
 
 const participantKey = "poangjakten.participantId";
@@ -45,6 +45,7 @@ const challengeScore = document.querySelector("#challenge-score");
 const tableChallengeScore = document.querySelector("#table-challenge-score");
 const playerChallengeList = document.querySelector("#player-challenge-list");
 const playerChallengeError = document.querySelector("#player-challenge-error");
+const specialQuestionList = document.querySelector("#special-question-list");
 const tableChallengeList = document.querySelector("#table-challenge-list");
 const tableChallengeError = document.querySelector("#table-challenge-error");
 const storageMessage = document.querySelector("#storage-message");
@@ -1160,17 +1161,102 @@ function resetParticipantForm() {
 
 async function loadPlayerChallenges() {
   playerChallengeList.innerHTML = '<p class="muted">Hämtar uppgifter…</p>';
+  specialQuestionList.hidden = true;
+  specialQuestionList.replaceChildren();
   playerChallengeError.hidden = true;
   try {
-    renderPlayerChallenges(
-      await api.listParticipantChallenges(currentParticipantId),
-      playerChallengeList,
-      false);
+    const [participant, challenges, specialQuestions] = await Promise.all([
+      api.getParticipant(currentParticipantId),
+      api.listParticipantChallenges(currentParticipantId),
+      api.listSpecialQuestions(currentParticipantId)
+    ]);
+    score.textContent = participant.score;
+    challengeScore.textContent = participant.score;
+    renderSpecialQuestions(specialQuestions);
+    renderPlayerChallenges(challenges, playerChallengeList, false);
   } catch (error) {
     playerChallengeList.innerHTML = "";
+    specialQuestionList.replaceChildren();
+    specialQuestionList.hidden = true;
     playerChallengeError.textContent = error.message;
     playerChallengeError.hidden = false;
   }
+}
+
+function renderSpecialQuestions(questions) {
+  specialQuestionList.replaceChildren();
+  specialQuestionList.hidden = questions.length === 0;
+
+  questions.forEach(question => {
+    const form = document.createElement("form");
+    form.className = "special-question-card";
+
+    const label = document.createElement("label");
+    label.htmlFor = `special-question-${question.id}`;
+    label.textContent = question.prompt;
+
+    const inputRow = document.createElement("div");
+    inputRow.className = "percentage-input-row";
+    const input = document.createElement("input");
+    input.id = `special-question-${question.id}`;
+    input.type = "number";
+    input.min = "0";
+    input.max = "100";
+    input.step = "1";
+    input.inputMode = "numeric";
+    input.required = true;
+    input.value = question.value ?? "";
+    input.placeholder = "0–100";
+    const suffix = document.createElement("span");
+    suffix.textContent = "%";
+    inputRow.append(input, suffix);
+
+    const points = document.createElement("p");
+    points.className = "special-question-points";
+    const updatePreview = () => {
+      const value = Number.parseInt(input.value, 10);
+      points.textContent = Number.isInteger(value) && value >= 0 && value <= 100
+        ? `Detta ger dig ${Math.floor(value / 10)} poäng.`
+        : "Fyll i ett heltal mellan 0 och 100.";
+    };
+    updatePreview();
+    input.addEventListener("input", updatePreview);
+
+    const save = document.createElement("button");
+    save.type = "submit";
+    save.className = "primary-button";
+    save.textContent = question.value === null ? "Spara svar" : "Uppdatera svar";
+
+    const saved = document.createElement("p");
+    saved.className = "upload-status";
+    saved.setAttribute("role", "status");
+    saved.hidden = true;
+
+    form.addEventListener("submit", async event => {
+      event.preventDefault();
+      playerChallengeError.hidden = true;
+      saved.hidden = true;
+      save.disabled = true;
+      try {
+        const value = Number.parseInt(input.value, 10);
+        const result = await api.setSpecialAnswer(currentParticipantId, question.id, value);
+        points.textContent = `Detta ger dig ${result.points} poäng.`;
+        saved.textContent = "Svaret är sparat.";
+        saved.hidden = false;
+        save.textContent = "Uppdatera svar";
+        score.textContent = result.score;
+        challengeScore.textContent = result.score;
+      } catch (error) {
+        playerChallengeError.textContent = error.message;
+        playerChallengeError.hidden = false;
+      } finally {
+        save.disabled = false;
+      }
+    });
+
+    form.append(label, inputRow, points, save, saved);
+    specialQuestionList.append(form);
+  });
 }
 
 async function loadTableChallenges() {

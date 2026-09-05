@@ -10,5 +10,6 @@ public sealed class StorageOptions
     public string PhotosTableName { get; init; } = "photos";
     public string SongsTableName { get; init; } = "songs";
     public string SongRequestsTableName { get; init; } = "songrequests";
+    public string SpecialAnswersTableName { get; init; } = "specialanswers";
     public string AppStateTableName { get; init; } = "appstate";
 }

@@ -47,6 +47,11 @@ uppstart och alla adminändringar skrivs igenom till Table Storage innan minnet 
 En uppgift kan kopplas till ett feststeg via `UnlockStageId`; då filtreras den bort från
 deltagarvyer och poängberäkning tills administratören låser upp steget.
 
+Fasta specialfrågor ligger utanför det administrerbara uppgiftsregistret. Svaret på
+`Hur många % Daniel är du?` lagras per deltagare i tabellen `specialanswers` och ger
+heltalsdelen av procentsvaret delat med tio i poäng. Frågan och dess poäng aktiveras
+av feststeget `Efter 100% Daniel`.
+
 Varje deltagares utförda uppgifter ligger i `challengecompletions`, partitionerade per
 deltagare. Markeringar kan sättas och tas bort fritt. Totalpoängen beräknas från de
 aktuella uppgiftspoängen, så en adminändring slår igenom utan migrering av lagrade summor.
