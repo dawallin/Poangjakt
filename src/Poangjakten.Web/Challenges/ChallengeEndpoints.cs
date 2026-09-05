@@ -64,6 +64,7 @@ public static class ChallengeEndpoints
         {
             var participant = participants.Find(participantId);
             if (participant is null) return Results.NotFound();
+            if (!participant.HasTable) return Results.NotFound();
             if (!stages.IsUnlocked(PartyStageDefinitions.TableRevealId)) return TablesLocked();
 
             var completedIds = completions.CompletedChallengeIds(
@@ -89,6 +90,7 @@ public static class ChallengeEndpoints
             var participant = participants.Find(participantId);
             var challenge = challenges.Find(challengeId);
             if (participant is null || challenge?.Scope != ChallengeScopes.Table) return Results.NotFound();
+            if (!participant.HasTable) return Results.NotFound();
             if (!stages.IsUnlocked(PartyStageDefinitions.TableRevealId)) return TablesLocked();
 
             await completions.SetAsync(
@@ -110,6 +112,7 @@ public static class ChallengeEndpoints
         {
             var participant = participants.Find(participantId);
             if (participant is null) return Results.NotFound();
+            if (!participant.HasTable) return Results.NotFound();
             if (!stages.IsUnlocked(PartyStageDefinitions.TableRevealId)) return TablesLocked();
 
             var leaderboard = PartyTables.All

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#101828">
   <title>Poängjakten</title>
-  <link rel="stylesheet" href="/styles.css?v=20260905-3">
+  <link rel="stylesheet" href="/styles.css?v=20260905-4">
 </head>
 <body>
   <main class="shell">
@@ -40,7 +40,7 @@
         </div>
       </header>
 
-      <section class="clue-card participant-only" aria-labelledby="clue-heading">
+      <section id="clue-card" class="clue-card participant-only" aria-labelledby="clue-heading">
         <p id="clue-heading" class="clue-label">Din ledtråd</p>
         <strong id="participant-clue">–</strong>
       </section>
@@ -50,7 +50,7 @@
           <span class="tile-symbol" aria-hidden="true">✓</span>
           <span class="menu-title">Individuell poängjakt</span><span class="menu-caption">Kryssa i det du själv har gjort</span>
         </button>
-        <button id="open-table-challenges" class="menu-tile tile-table-points tile-wide locked" type="button">
+        <button id="open-table-challenges" class="menu-tile tile-table-points tile-wide locked participant-table-only" type="button">
           <span id="table-challenge-tile-symbol" class="tile-symbol" aria-hidden="true">🔒</span>
           <span class="menu-title">Bordspoängjakt</span><span id="table-challenge-tile-caption" class="menu-caption">Låses upp tillsammans med borden</span>
         </button>
@@ -58,7 +58,7 @@
           <span class="tile-symbol" aria-hidden="true">▲</span>
           <span class="menu-title">Topplista</span><span class="menu-caption">Se deltagarnas ställning</span>
         </button>
-        <button id="open-table-leaderboard" class="menu-tile tile-table-leaderboard locked" type="button">
+        <button id="open-table-leaderboard" class="menu-tile tile-table-leaderboard locked participant-table-only" type="button">
           <span id="table-leaderboard-tile-symbol" class="tile-symbol" aria-hidden="true">🔒</span>
           <span class="menu-title">Topplista Bord</span><span id="table-leaderboard-tile-caption" class="menu-caption">Låses upp tillsammans med borden</span>
         </button>
@@ -70,11 +70,11 @@
           <span class="tile-symbol" aria-hidden="true">♫</span>
           <span class="menu-title">Sånger</span><span class="menu-caption">Allsång nära till hands</span>
         </button>
-        <button id="open-table" class="menu-tile tile-navy locked" type="button">
+        <button id="open-table" class="menu-tile tile-navy locked participant-table-only" type="button">
           <span id="table-tile-symbol" class="tile-symbol" aria-hidden="true">🔒</span>
           <span class="menu-title">Hitta ditt bord</span><span id="table-tile-caption" class="menu-caption">Väntar på att låsas upp</span>
         </button>
-        <button id="open-song-requests" class="menu-tile tile-song-requests locked" type="button">
+        <button id="open-song-requests" class="menu-tile tile-song-requests locked participant-table-only" type="button">
           <span id="song-request-tile-symbol" class="tile-symbol" aria-hidden="true">🔒</span>
           <span class="menu-title">Låtlista</span><span id="song-request-tile-caption" class="menu-caption">Låses upp tillsammans med borden</span>
         </button>
@@ -258,11 +258,11 @@
         <label for="participant-code">Kod</label>
         <input id="participant-code" class="code-input" type="text" minlength="3" maxlength="20"
                autocapitalize="characters" spellcheck="false" required>
-        <label for="participant-clue-input">Ledtråd</label>
-        <textarea id="participant-clue-input" rows="3" minlength="2" maxlength="240" required></textarea>
-        <label for="participant-table">Bord</label>
-        <select id="participant-table" required>
-          <option value="">Välj bord</option>
+        <label for="participant-clue-input">Ledtråd <span class="optional">(valfritt)</span></label>
+        <textarea id="participant-clue-input" rows="3" maxlength="240"></textarea>
+        <label for="participant-table">Bord <span class="optional">(valfritt)</span></label>
+        <select id="participant-table">
+          <option value="">Inget bord</option>
         </select>
         <p id="admin-error" class="form-error" role="alert" hidden></p>
         <div class="form-actions">
@@ -361,6 +361,6 @@
     <img id="dialog-photo" alt="">
     <p id="photo-dialog-meta"></p>
   </dialog>
-  <script type="module" src="/app.js?v=20260905-3"></script>
+  <script type="module" src="/app.js?v=20260905-4"></script>
 </body>
 </html>

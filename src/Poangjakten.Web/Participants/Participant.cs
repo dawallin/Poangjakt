@@ -8,4 +8,7 @@ public sealed record Participant(
     string TableId,
     int Score,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt);
+    DateTimeOffset UpdatedAt)
+{
+    public bool HasTable => PartyTables.Find(TableId) is not null;
+}

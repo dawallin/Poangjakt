@@ -171,11 +171,11 @@ public sealed partial class ParticipantRegistry(
             return ParticipantValidation.Invalid("Koden måste vara 3–20 tecken och bara innehålla bokstäver, siffror eller bindestreck.");
 
         var clue = NormalizeText(requestedClue);
-        if (clue.Length is < 2 or > 240)
-            return ParticipantValidation.Invalid("Ledtråden måste vara 2–240 tecken.");
+        if (clue.Length > 240)
+            return ParticipantValidation.Invalid("Ledtråden får vara högst 240 tecken.");
 
-        var tableId = requestedTableId?.Trim();
-        if (PartyTables.Find(tableId) is null)
+        var tableId = requestedTableId?.Trim() ?? "";
+        if (tableId.Length > 0 && PartyTables.Find(tableId) is null)
             return ParticipantValidation.Invalid("Välj ett av de nio fördefinierade borden.");
 
         return new(name, code, clue, tableId!, null);

@@ -23,6 +23,7 @@ const registrationForm = document.querySelector("#registration-form");
 const loginCodeInput = document.querySelector("#login-code");
 const registrationError = document.querySelector("#registration-error");
 const welcomeHeading = document.querySelector("#welcome-heading");
+const clueCard = document.querySelector("#clue-card");
 const participantClue = document.querySelector("#participant-clue");
 const tableTile = document.querySelector("#open-table");
 const tableTileSymbol = document.querySelector("#table-tile-symbol");
@@ -114,6 +115,7 @@ const songRequestList = document.querySelector("#song-request-list");
 let toastTimer;
 let currentParticipantId = null;
 let currentIsAdmin = false;
+let currentParticipantHasTable = false;
 let currentSong = null;
 let partyTables = [];
 
@@ -125,23 +127,30 @@ function showView(name) {
 function showParticipant(participant) {
   currentParticipantId = participant.id;
   currentIsAdmin = false;
+  currentParticipantHasTable = participant.hasTable;
   welcomeHeading.textContent = `Hej, ${participant.displayName}!`;
   participantClue.textContent = participant.clue;
   score.textContent = participant.score;
   scoreBadge.hidden = false;
   document.querySelectorAll(".admin-only").forEach(element => { element.hidden = true; });
   document.querySelectorAll(".participant-only").forEach(element => { element.hidden = false; });
+  clueCard.hidden = !participant.clue;
+  document.querySelectorAll(".participant-table-only").forEach(element => {
+    element.hidden = !participant.hasTable;
+  });
   showView("dashboard");
-  refreshPartyStageSummary();
+  if (participant.hasTable) refreshPartyStageSummary();
 }
 
 function showAdmin(session) {
   currentParticipantId = null;
   currentIsAdmin = true;
+  currentParticipantHasTable = false;
   welcomeHeading.textContent = `Hej, ${session.displayName}!`;
   scoreBadge.hidden = true;
   document.querySelectorAll(".admin-only").forEach(element => { element.hidden = false; });
   document.querySelectorAll(".participant-only").forEach(element => { element.hidden = true; });
+  document.querySelectorAll(".participant-table-only").forEach(element => { element.hidden = false; });
   showView("dashboard");
   refreshPartyStageSummary();
 }
@@ -239,7 +248,7 @@ function setTableTileState(isUnlocked) {
 }
 
 tableTile.addEventListener("click", async () => {
-  if (!currentParticipantId) {
+  if (!currentParticipantId || !currentParticipantHasTable) {
     showToast("Admin har ingen egen bordsplacering.");
     return;
   }
@@ -305,7 +314,7 @@ document.querySelector("#open-challenges").addEventListener("click", async () =>
 document.querySelector("#close-challenges").addEventListener("click", () => showView("dashboard"));
 
 tableChallengeTile.addEventListener("click", async () => {
-  if (!currentParticipantId) {
+  if (!currentParticipantId || !currentParticipantHasTable) {
     showToast("Admin har inget eget bordslag.");
     return;
   }
@@ -324,7 +333,7 @@ document.querySelector("#close-leaderboard").addEventListener("click", () => sho
 document.querySelector("#refresh-leaderboard").addEventListener("click", loadLeaderboard);
 
 tableLeaderboardTile.addEventListener("click", async () => {
-  if (!currentParticipantId) {
+  if (!currentParticipantId || !currentParticipantHasTable) {
     showToast("Admin har inget eget bordslag.");
     return;
   }
@@ -442,6 +451,7 @@ document.querySelector("#open-songs").addEventListener("click", async () => {
 document.querySelector("#close-songs").addEventListener("click", () => showView("dashboard"));
 
 songRequestTile.addEventListener("click", async () => {
+  if (!currentIsAdmin && !currentParticipantHasTable) return;
   if (!currentParticipantId && !currentIsAdmin) return;
   showView("songRequests");
   songRequestStatus.hidden = true;

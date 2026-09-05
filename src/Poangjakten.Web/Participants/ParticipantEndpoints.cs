@@ -39,10 +39,10 @@ public static class ParticipantEndpoints
 
 public sealed record ParticipantLoginRequest(string? Code);
 
-public sealed record ParticipantSessionResponse(string Id, string DisplayName, int Score, string Clue)
+public sealed record ParticipantSessionResponse(string Id, string DisplayName, int Score, string Clue, bool HasTable)
 {
     public static ParticipantSessionResponse From(Participant participant, int score) =>
-        new(participant.Id, participant.DisplayName, score, participant.Clue);
+        new(participant.Id, participant.DisplayName, score, participant.Clue, participant.HasTable);
 }
 
 public sealed record LeaderboardParticipantResponse(string Id, string DisplayName, int Score)

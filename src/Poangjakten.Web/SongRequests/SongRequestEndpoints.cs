@@ -16,6 +16,7 @@ public static class SongRequestEndpoints
         {
             var participant = participants.Find(participantId);
             if (participant is null) return Results.NotFound();
+            if (!participant.HasTable) return Results.NotFound();
             if (!stages.IsUnlocked(PartyStageDefinitions.TableRevealId)) return TablesLocked();
 
             return Results.Ok(songRequests.List().Select(songRequest =>
@@ -32,6 +33,7 @@ public static class SongRequestEndpoints
         {
             var participant = participants.Find(participantId);
             if (participant is null) return Results.NotFound();
+            if (!participant.HasTable) return Results.NotFound();
             if (!stages.IsUnlocked(PartyStageDefinitions.TableRevealId)) return TablesLocked();
 
             var result = await songRequests.CreateAsync(
@@ -63,6 +65,7 @@ public static class SongRequestEndpoints
         {
             var participant = participants.Find(participantId);
             if (participant is null) return Results.NotFound();
+            if (!participant.HasTable) return Results.NotFound();
             if (!stages.IsUnlocked(PartyStageDefinitions.TableRevealId)) return TablesLocked();
 
             var songRequest = songRequests.Find(songRequestId);

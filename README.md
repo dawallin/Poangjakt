@@ -37,6 +37,9 @@ Det vanliga kodfältet används även för admininloggning. Om värdet matchar
 `Admin__Secret` startas en adminsession och `Admin__DisplayName` visas; annars
 loggas en förregistrerad deltagare in.
 
+En deltagare kan sakna både ledtråd och bord. Då döljs de bordsbundna funktionerna,
+men deltagaren kan fortfarande använda den individuella poängjakten, bilder och sånger.
+
 Poänguppgifterna ligger i en egen `challenges`-tabell. De laddas till minnet vid
 uppstart och alla adminändringar skrivs igenom till Table Storage innan minnet ändras.
 
