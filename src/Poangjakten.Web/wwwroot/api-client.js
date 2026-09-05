@@ -46,6 +46,9 @@ export const api = {
     return request(`/api/participants/${encodeURIComponent(participantId)}/table`);
   },
   listLeaderboard() { return request("/api/participants"); },
+  getParticipantChallengeSummary(participantId) {
+    return request(`/api/participants/${encodeURIComponent(participantId)}/challenge-summary`);
+  },
   listParticipantChallenges(participantId) {
     return request(`/api/participants/${encodeURIComponent(participantId)}/challenges`);
   },
@@ -84,6 +87,10 @@ export const api = {
   },
   listTableLeaderboard(participantId) {
     return request(`/api/participants/${encodeURIComponent(participantId)}/table-leaderboard`);
+  },
+  getTableChallengeSummary(participantId, tableId) {
+    return request(
+      `/api/participants/${encodeURIComponent(participantId)}/table-leaderboard/${encodeURIComponent(tableId)}/challenge-summary`);
   },
   listSongRequests(participantId) {
     return request(`/api/participants/${encodeURIComponent(participantId)}/song-requests`);

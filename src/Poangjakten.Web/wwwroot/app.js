@@ -1,4 +1,4 @@
-import { api } from "./api-client.js?v=20260905-7";
+import { api } from "./api-client.js?v=20260905-8";
 import { compressImage, compressPhoto } from "./image-utils.js";
 
 const participantKey = "poangjakten.participantId";
@@ -371,16 +371,24 @@ function renderLeaderboard(participants) {
     if (participant.score !== previousScore) rank = index + 1;
     previousScore = participant.score;
 
-    const row = document.createElement("article");
+    const entry = document.createElement("div");
+    entry.className = "leaderboard-entry";
+    const row = document.createElement("button");
+    row.type = "button";
     row.className = `leaderboard-row rank-${Math.min(rank, 4)}`;
     if (participant.id === currentParticipantId) row.classList.add("current-participant");
+    row.setAttribute("aria-expanded", "false");
 
     const position = document.createElement("span");
     position.className = "leaderboard-rank";
     position.textContent = `${rank}`;
-    const name = document.createElement("strong");
+    const name = document.createElement("span");
     name.className = "leaderboard-name";
-    name.textContent = participant.displayName;
+    const nameValue = document.createElement("strong");
+    nameValue.textContent = participant.displayName;
+    const hint = document.createElement("small");
+    hint.textContent = "Visa uppgifter";
+    name.append(nameValue, hint);
     const points = document.createElement("span");
     points.className = "leaderboard-score";
     const pointValue = document.createElement("strong");
@@ -389,7 +397,36 @@ function renderLeaderboard(participants) {
     pointLabel.textContent = "poäng";
     points.append(pointValue, pointLabel);
     row.append(position, name, points);
-    leaderboardList.append(row);
+
+    const details = document.createElement("section");
+    details.className = "leaderboard-details";
+    details.hidden = true;
+    row.addEventListener("click", async () => {
+      if (!details.hidden) {
+        details.hidden = true;
+        row.setAttribute("aria-expanded", "false");
+        hint.textContent = "Visa uppgifter";
+        return;
+      }
+
+      details.hidden = false;
+      row.setAttribute("aria-expanded", "true");
+      hint.textContent = "Dölj uppgifter";
+      if (details.dataset.loaded === "true") return;
+      details.innerHTML = '<p class="muted">Hämtar uppgifter…</p>';
+      try {
+        renderChallengeSummary(
+          await api.getParticipantChallengeSummary(participant.id),
+          details,
+          false);
+        details.dataset.loaded = "true";
+      } catch (error) {
+        renderLeaderboardDetailError(details, error.message);
+      }
+    });
+
+    entry.append(row, details);
+    leaderboardList.append(entry);
   });
 }
 
@@ -416,15 +453,23 @@ function renderTableLeaderboard(tables) {
     if (table.score !== previousScore) rank = index + 1;
     previousScore = table.score;
 
-    const row = document.createElement("article");
+    const entry = document.createElement("div");
+    entry.className = "leaderboard-entry";
+    const row = document.createElement("button");
+    row.type = "button";
     row.className = `leaderboard-row rank-${Math.min(rank, 4)}`;
     if (table.isCurrentTable) row.classList.add("current-participant");
+    row.setAttribute("aria-expanded", "false");
     const position = document.createElement("span");
     position.className = "leaderboard-rank";
     position.textContent = `${rank}`;
-    const name = document.createElement("strong");
+    const name = document.createElement("span");
     name.className = "leaderboard-name";
-    name.textContent = table.displayName;
+    const nameValue = document.createElement("strong");
+    nameValue.textContent = table.displayName;
+    const hint = document.createElement("small");
+    hint.textContent = "Visa uppgifter";
+    name.append(nameValue, hint);
     const points = document.createElement("span");
     points.className = "leaderboard-score";
     const pointValue = document.createElement("strong");
@@ -433,8 +478,89 @@ function renderTableLeaderboard(tables) {
     pointLabel.textContent = "poäng";
     points.append(pointValue, pointLabel);
     row.append(position, name, points);
-    tableLeaderboardList.append(row);
+
+    const details = document.createElement("section");
+    details.className = "leaderboard-details";
+    details.hidden = true;
+    row.addEventListener("click", async () => {
+      if (!details.hidden) {
+        details.hidden = true;
+        row.setAttribute("aria-expanded", "false");
+        hint.textContent = "Visa uppgifter";
+        return;
+      }
+
+      details.hidden = false;
+      row.setAttribute("aria-expanded", "true");
+      hint.textContent = "Dölj uppgifter";
+      if (details.dataset.loaded === "true") return;
+      details.innerHTML = '<p class="muted">Hämtar uppgifter…</p>';
+      try {
+        renderChallengeSummary(
+          await api.getTableChallengeSummary(currentParticipantId, table.id),
+          details,
+          true);
+        details.dataset.loaded = "true";
+      } catch (error) {
+        renderLeaderboardDetailError(details, error.message);
+      }
+    });
+
+    entry.append(row, details);
+    tableLeaderboardList.append(entry);
   });
+}
+
+function renderChallengeSummary(summary, target, isTable) {
+  target.replaceChildren();
+  const total = document.createElement("p");
+  total.className = "leaderboard-detail-total";
+  total.textContent = `${summary.score} poäng totalt`;
+  target.append(total);
+
+  const items = [
+    ...summary.challenges.map(challenge => ({
+      text: challenge.description,
+      points: challenge.points
+    })),
+    ...(summary.specialQuestions ?? []).map(question => ({
+      text: `${question.prompt} ${question.value} %`,
+      points: question.points,
+      special: true
+    }))
+  ];
+
+  if (items.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "muted";
+    empty.textContent = isTable
+      ? "Bordet har inte klarat någon synlig uppgift ännu."
+      : "Deltagaren har inte klarat någon synlig uppgift ännu.";
+    target.append(empty);
+    return;
+  }
+
+  const list = document.createElement("ul");
+  list.className = "leaderboard-challenge-list";
+  items.forEach(item => {
+    const listItem = document.createElement("li");
+    const description = document.createElement("span");
+    description.textContent = item.text;
+    if (item.special) description.className = "special-summary-item";
+    const points = document.createElement("strong");
+    points.textContent = `${item.points} p`;
+    listItem.append(description, points);
+    list.append(listItem);
+  });
+  target.append(list);
+}
+
+function renderLeaderboardDetailError(target, message) {
+  target.replaceChildren();
+  const error = document.createElement("p");
+  error.className = "form-error";
+  error.textContent = message;
+  target.append(error);
 }
 
 document.querySelector("#open-photos").addEventListener("click", async () => {
@@ -1308,12 +1434,18 @@ function renderPlayerChallenges(challenges, target, isTableChallenge) {
       checkbox.type = "checkbox";
       checkbox.id = `completion-${challenge.id}`;
       checkbox.checked = challenge.isCompleted;
+      const copy = document.createElement("div");
+      copy.className = "completion-copy";
       const label = document.createElement("label");
       label.htmlFor = checkbox.id;
       label.textContent = challenge.description;
+      const count = document.createElement("small");
+      count.className = "completion-count";
+      count.textContent = completionCountText(challenge.completionCount, isTableChallenge);
+      copy.append(label, count);
       checkbox.addEventListener("change", () =>
-        setChallengeCompletion(challenge, checkbox, row, isTableChallenge));
-      row.append(checkbox, label);
+        setChallengeCompletion(challenge, checkbox, row, isTableChallenge, count));
+      row.append(checkbox, copy);
       rows.append(row);
     });
 
@@ -1322,7 +1454,12 @@ function renderPlayerChallenges(challenges, target, isTableChallenge) {
   });
 }
 
-async function setChallengeCompletion(challenge, checkbox, row, isTableChallenge) {
+function completionCountText(count, isTableChallenge) {
+  if (isTableChallenge) return count === 1 ? "1 bord klart" : `${count} bord klara`;
+  return count === 1 ? "1 person klar" : `${count} personer klara`;
+}
+
+async function setChallengeCompletion(challenge, checkbox, row, isTableChallenge, countElement) {
   const requestedState = checkbox.checked;
   checkbox.disabled = true;
   const errorElement = isTableChallenge ? tableChallengeError : playerChallengeError;
@@ -1332,6 +1469,8 @@ async function setChallengeCompletion(challenge, checkbox, row, isTableChallenge
       ? await api.setTableChallengeCompletion(currentParticipantId, challenge.id, requestedState)
       : await api.setChallengeCompletion(currentParticipantId, challenge.id, requestedState);
     row.classList.toggle("completed", result.isCompleted);
+    challenge.completionCount = result.completionCount;
+    countElement.textContent = completionCountText(result.completionCount, isTableChallenge);
     if (isTableChallenge) {
       tableChallengeScore.textContent = result.score;
     } else {

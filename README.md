@@ -14,11 +14,13 @@ utvecklas eller bytas utan att resten av appen behöver skrivas om.
 - `POST /api/participants/login` – loggar in en förregistrerad deltagare med kod
 - `GET /api/participants/{id}` – hämtar en deltagare från minnesregistret
 - `GET /api/participants` – listar deltagarna i poängordning
+- `GET /api/participants/{id}/challenge-summary` – listar deltagarens synliga utförda uppgifter
 - `DELETE /api/participants/{participantId}/photos/{id}` – låter deltagaren radera en egen bild
 - `GET /api/admin/participants` – listar deltagare för administration (testläge)
 - `DELETE /api/admin/participants/{id}` – tar bort en deltagare ur minne och lagring (testläge)
 - `/api/admin-session` – skapar, kontrollerar och avslutar en serverlagrad adminsession
 - `GET /api/challenges` – listar aktiva poänguppgifter för deltagarvyn
+- `GET /api/participants/{id}/table-leaderboard/{tableId}/challenge-summary` – listar bordets synliga utförda uppgifter
 - `/api/admin/challenges` – skapa, ändra och radera poänguppgifter som admin
 - `GET /api/photos` – listar bildmetadata från minnet
 - `POST /api/photos` – laddar upp en klientkomprimerad visningsbild och tumnagel
@@ -55,6 +57,9 @@ av feststeget `Efter 100% Daniel`.
 Varje deltagares utförda uppgifter ligger i `challengecompletions`, partitionerade per
 deltagare. Markeringar kan sättas och tas bort fritt. Totalpoängen beräknas från de
 aktuella uppgiftspoängen, så en adminändring slår igenom utan migrering av lagrade summor.
+Samma minnesregister används för att visa hur många deltagare eller bord som har klarat
+varje uppgift och för de utfällbara uppgiftslistorna i topplistorna. Uppgifter som tillhör
+ett låst feststeg exponeras inte i dessa listor.
 
 Bilder komprimeras i webbläsaren till högst 2048 pixlar på längsta sidan och JPEG-kvalitet
 84 %. En separat tumnagel på högst 480 pixlar skapas för galleriet. Båda sparas i den

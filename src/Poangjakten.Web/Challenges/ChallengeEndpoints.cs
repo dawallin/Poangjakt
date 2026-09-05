@@ -2,6 +2,7 @@ using Poangjakten.Web.Administration;
 using Poangjakten.Web.Participants;
 using Poangjakten.Web.PartyStages;
 using Poangjakten.Web.Scoring;
+using Poangjakten.Web.SpecialQuestions;
 
 namespace Poangjakten.Web.Challenges;
 
@@ -28,7 +29,8 @@ public static class ChallengeEndpoints
                 .Where(challenge => challenge.Scope == ChallengeScopes.Individual && IsVisible(challenge, stages))
                 .Select(challenge => ParticipantChallengeResponse.From(
                     challenge,
-                    completedIds.Contains(challenge.Id))));
+                    completedIds.Contains(challenge.Id),
+                    completions.CountParticipantCompletions(challenge.Id))));
         });
 
         routes.MapPut("/api/participants/{participantId}/challenges/{challengeId}", async (
@@ -55,7 +57,45 @@ public static class ChallengeEndpoints
             return Results.Ok(new ChallengeCompletionResponse(
                 challengeId,
                 request.IsCompleted,
-                scores.GetScore(participant)));
+                scores.GetScore(participant),
+                completions.CountParticipantCompletions(challengeId)));
+        });
+
+        routes.MapGet("/api/participants/{participantId}/challenge-summary", (
+            string participantId,
+            ParticipantRegistry participants,
+            ChallengeRegistry challenges,
+            ChallengeCompletionRegistry completions,
+            SpecialAnswerRegistry specialAnswers,
+            PartyStageRegistry stages,
+            ScoreService scores) =>
+        {
+            var participant = participants.Find(participantId);
+            if (participant is null) return Results.NotFound();
+
+            var completedIds = completions.CompletedChallengeIds(
+                ChallengeCompletionOwners.ForParticipant(participantId));
+            var completedChallenges = challenges.List()
+                .Where(challenge =>
+                    challenge.Scope == ChallengeScopes.Individual &&
+                    IsVisible(challenge, stages) &&
+                    completedIds.Contains(challenge.Id))
+                .OrderByDescending(challenge => challenge.Points)
+                .ThenBy(challenge => challenge.Description, StringComparer.CurrentCultureIgnoreCase)
+                .Select(CompletedChallengeResponse.From)
+                .ToArray();
+            var completedSpecialQuestions = SpecialQuestionDefinitions.All
+                .Where(question => stages.IsUnlocked(question.UnlockStageId))
+                .Select(question => (Question: question, Answer: specialAnswers.Find(participantId, question.Id)))
+                .Where(item => item.Answer is not null)
+                .Select(item => CompletedSpecialQuestionResponse.From(item.Question, item.Answer!))
+                .ToArray();
+
+            return Results.Ok(new ParticipantChallengeSummaryResponse(
+                participant.DisplayName,
+                scores.GetScore(participant),
+                completedChallenges,
+                completedSpecialQuestions));
         });
 
         routes.MapGet("/api/participants/{participantId}/table-challenges", (
@@ -76,7 +116,8 @@ public static class ChallengeEndpoints
                 .Where(challenge => challenge.Scope == ChallengeScopes.Table && IsVisible(challenge, stages))
                 .Select(challenge => ParticipantChallengeResponse.From(
                     challenge,
-                    completedIds.Contains(challenge.Id))));
+                    completedIds.Contains(challenge.Id),
+                    completions.CountTableCompletions(challenge.Id))));
         });
 
         routes.MapPut("/api/participants/{participantId}/table-challenges/{challengeId}", async (
@@ -105,7 +146,8 @@ public static class ChallengeEndpoints
             return Results.Ok(new ChallengeCompletionResponse(
                 challengeId,
                 request.IsCompleted,
-                scores.GetTableScore(participant.TableId)));
+                scores.GetTableScore(participant.TableId),
+                completions.CountTableCompletions(challengeId)));
         });
 
         routes.MapGet("/api/participants/{participantId}/table-leaderboard", (
@@ -121,6 +163,7 @@ public static class ChallengeEndpoints
 
             var leaderboard = PartyTables.All
                 .Select(table => new TableLeaderboardResponse(
+                    table.Id,
                     table.Number,
                     table.Name,
                     table.DisplayName,
@@ -129,6 +172,38 @@ public static class ChallengeEndpoints
                 .OrderByDescending(table => table.Score)
                 .ThenBy(table => table.Number);
             return Results.Ok(leaderboard);
+        });
+
+        routes.MapGet("/api/participants/{participantId}/table-leaderboard/{tableId}/challenge-summary", (
+            string participantId,
+            string tableId,
+            ParticipantRegistry participants,
+            ChallengeRegistry challenges,
+            ChallengeCompletionRegistry completions,
+            PartyStageRegistry stages,
+            ScoreService scores) =>
+        {
+            var participant = participants.Find(participantId);
+            var table = PartyTables.Find(tableId);
+            if (participant is null || table is null || !participant.HasTable) return Results.NotFound();
+            if (!stages.IsUnlocked(PartyStageDefinitions.TableRevealId)) return TablesLocked();
+
+            var completedIds = completions.CompletedChallengeIds(
+                ChallengeCompletionOwners.ForTable(tableId));
+            var completedChallenges = challenges.List()
+                .Where(challenge =>
+                    challenge.Scope == ChallengeScopes.Table &&
+                    IsVisible(challenge, stages) &&
+                    completedIds.Contains(challenge.Id))
+                .OrderByDescending(challenge => challenge.Points)
+                .ThenBy(challenge => challenge.Description, StringComparer.CurrentCultureIgnoreCase)
+                .Select(CompletedChallengeResponse.From)
+                .ToArray();
+
+            return Results.Ok(new TableChallengeSummaryResponse(
+                table.DisplayName,
+                scores.GetTableScore(tableId),
+                completedChallenges));
         });
 
         var admin = routes.MapGroup("/api/admin/challenges");
@@ -232,17 +307,59 @@ public sealed record ChallengeResponse(
             PartyStageDefinitions.Find(challenge.UnlockStageId)?.DisplayName);
 }
 
-public sealed record ParticipantChallengeResponse(string Id, string Description, int Points, bool IsCompleted)
+public sealed record ParticipantChallengeResponse(
+    string Id,
+    string Description,
+    int Points,
+    bool IsCompleted,
+    int CompletionCount)
 {
-    public static ParticipantChallengeResponse From(Challenge challenge, bool isCompleted) =>
-        new(challenge.Id, challenge.Description, challenge.Points, isCompleted);
+    public static ParticipantChallengeResponse From(
+        Challenge challenge,
+        bool isCompleted,
+        int completionCount) =>
+        new(challenge.Id, challenge.Description, challenge.Points, isCompleted, completionCount);
 }
 
 public sealed record SetChallengeCompletionRequest(bool IsCompleted);
-public sealed record ChallengeCompletionResponse(string ChallengeId, bool IsCompleted, int Score);
+public sealed record ChallengeCompletionResponse(
+    string ChallengeId,
+    bool IsCompleted,
+    int Score,
+    int CompletionCount);
 public sealed record TableLeaderboardResponse(
+    string Id,
     int Number,
     string Name,
     string DisplayName,
     int Score,
     bool IsCurrentTable);
+
+public sealed record CompletedChallengeResponse(string Id, string Description, int Points)
+{
+    public static CompletedChallengeResponse From(Challenge challenge) =>
+        new(challenge.Id, challenge.Description, challenge.Points);
+}
+
+public sealed record CompletedSpecialQuestionResponse(
+    string Id,
+    string Prompt,
+    int Value,
+    int Points)
+{
+    public static CompletedSpecialQuestionResponse From(
+        SpecialQuestionDefinition question,
+        SpecialAnswer answer) =>
+        new(question.Id, question.Prompt, answer.Value, question.PointsFor(answer.Value));
+}
+
+public sealed record ParticipantChallengeSummaryResponse(
+    string DisplayName,
+    int Score,
+    IReadOnlyList<CompletedChallengeResponse> Challenges,
+    IReadOnlyList<CompletedSpecialQuestionResponse> SpecialQuestions);
+
+public sealed record TableChallengeSummaryResponse(
+    string DisplayName,
+    int Score,
+    IReadOnlyList<CompletedChallengeResponse> Challenges);

@@ -28,6 +28,12 @@ public sealed class ChallengeCompletionRegistry(
             ? completions.Keys.ToHashSet(StringComparer.Ordinal)
             : new HashSet<string>(StringComparer.Ordinal);
 
+    public int CountParticipantCompletions(string challengeId) =>
+        CountCompletions(challengeId, ownerId => !ownerId.StartsWith("table:", StringComparison.Ordinal));
+
+    public int CountTableCompletions(string challengeId) =>
+        CountCompletions(challengeId, ownerId => ownerId.StartsWith("table:", StringComparison.Ordinal));
+
     public async Task SetAsync(
         string ownerId,
         string challengeId,
@@ -78,4 +84,8 @@ public sealed class ChallengeCompletionRegistry(
         _byOwner.GetOrAdd(
             ownerId,
             _ => new ConcurrentDictionary<string, DateTimeOffset>(StringComparer.Ordinal));
+
+    private int CountCompletions(string challengeId, Func<string, bool> includeOwner) =>
+        _byOwner.Count(entry =>
+            includeOwner(entry.Key) && entry.Value.ContainsKey(challengeId));
 }
