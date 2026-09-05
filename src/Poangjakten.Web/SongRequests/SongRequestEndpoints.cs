@@ -70,7 +70,8 @@ public static class SongRequestEndpoints
 
             var songRequest = songRequests.Find(songRequestId);
             if (songRequest is null) return Results.NotFound();
-            if (!IsOwnedBy(songRequest, participant)) return Results.Forbid();
+            if (!IsOwnedBy(songRequest, participant))
+                return Results.StatusCode(StatusCodes.Status403Forbidden);
 
             return await songRequests.RemoveAsync(songRequestId, cancellationToken)
                 ? Results.NoContent()
