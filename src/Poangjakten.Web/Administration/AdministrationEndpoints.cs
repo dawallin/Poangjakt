@@ -1,5 +1,5 @@
-using Poangjakten.Web.Participants;
 using Poangjakten.Web.Challenges;
+using Poangjakten.Web.Participants;
 using Poangjakten.Web.Scoring;
 
 namespace Poangjakten.Web.Administration;
@@ -44,11 +44,40 @@ public static class AdministrationEndpoints
         var group = routes.MapGroup("/api/admin");
         group.AddEndpointFilter<AdminEndpointFilter>();
 
+        group.MapGet("/party-tables", () => Results.Ok(PartyTables.All.Select(PartyTableResponse.From)));
+
         group.MapGet("/participants", (ParticipantRegistry registry, ScoreService scores) =>
-            Results.Ok(registry.List()
-                .Select(participant => ParticipantResponse.From(participant, scores.GetScore(participant)))
-                .OrderByDescending(participant => participant.Score)
-                .ThenBy(participant => participant.DisplayName, StringComparer.CurrentCultureIgnoreCase)));
+            Results.Ok(registry.List().Select(participant =>
+                AdminParticipantResponse.From(participant, scores.GetScore(participant)))));
+
+        group.MapPost("/participants", async (
+            SaveParticipantRequest request,
+            ParticipantRegistry registry,
+            ScoreService scores,
+            CancellationToken cancellationToken) =>
+        {
+            var result = await registry.CreateAsync(
+                request.DisplayName, request.LoginCode, request.Clue, request.TableId, cancellationToken);
+            if (result.Participant is null) return ParticipantError(result);
+
+            return Results.Created(
+                $"/api/admin/participants/{result.Participant.Id}",
+                AdminParticipantResponse.From(result.Participant, scores.GetScore(result.Participant)));
+        });
+
+        group.MapPut("/participants/{id}", async (
+            string id,
+            SaveParticipantRequest request,
+            ParticipantRegistry registry,
+            ScoreService scores,
+            CancellationToken cancellationToken) =>
+        {
+            var result = await registry.UpdateAsync(
+                id, request.DisplayName, request.LoginCode, request.Clue, request.TableId, cancellationToken);
+            if (result.Participant is null) return ParticipantError(result);
+
+            return Results.Ok(AdminParticipantResponse.From(result.Participant, scores.GetScore(result.Participant)));
+        });
 
         group.MapDelete("/participants/{id}", async (
             string id,
@@ -64,7 +93,47 @@ public static class AdministrationEndpoints
 
         return routes;
     }
+
+    private static IResult ParticipantError(ParticipantMutationResult result)
+    {
+        if (result.WasNotFound) return Results.NotFound();
+        if (result.WasConflict) return Results.Conflict(new { title = result.Error });
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["participant"] = [result.Error ?? "Deltagaren är ogiltig."]
+        });
+    }
 }
 
 public sealed record AdminLoginRequest(string? Secret);
 public sealed record AdminSessionResponse(bool IsAdmin, string DisplayName);
+public sealed record SaveParticipantRequest(string? DisplayName, string? LoginCode, string? Clue, string? TableId);
+
+public sealed record PartyTableResponse(string Id, int Number, string Name, string DisplayName)
+{
+    public static PartyTableResponse From(PartyTable table) =>
+        new(table.Id, table.Number, table.Name, table.DisplayName);
+}
+
+public sealed record AdminParticipantResponse(
+    string Id,
+    string DisplayName,
+    string LoginCode,
+    string Clue,
+    string TableId,
+    string TableName,
+    int Score)
+{
+    public static AdminParticipantResponse From(Participant participant, int score)
+    {
+        var table = PartyTables.Find(participant.TableId);
+        return new(
+            participant.Id,
+            participant.DisplayName,
+            participant.LoginCode,
+            participant.Clue,
+            participant.TableId,
+            table?.DisplayName ?? "Ej tilldelad",
+            score);
+    }
+}

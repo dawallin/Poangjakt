@@ -1,6 +1,6 @@
-namespace Poangjakten.Web.Participants;
-
 using Poangjakten.Web.Scoring;
+
+namespace Poangjakten.Web.Participants;
 
 public static class ParticipantEndpoints
 {
@@ -8,25 +8,15 @@ public static class ParticipantEndpoints
     {
         var group = routes.MapGroup("/api/participants");
 
-        group.MapPost("/register", async (
-            RegisterParticipantRequest request,
+        group.MapPost("/login", (
+            ParticipantLoginRequest request,
             ParticipantRegistry registry,
-            ScoreService scores,
-            CancellationToken cancellationToken) =>
+            ScoreService scores) =>
         {
-            var result = await registry.RegisterAsync(request.DisplayName, cancellationToken);
-            if (result.Participant is null)
-            {
-                return Results.ValidationProblem(new Dictionary<string, string[]>
-                {
-                    [nameof(request.DisplayName)] = [result.Error ?? "Namnet är ogiltigt."]
-                });
-            }
-
-            var response = ParticipantResponse.From(result.Participant, scores.GetScore(result.Participant));
-            return result.WasCreated
-                ? Results.Created($"/api/participants/{result.Participant.Id}", response)
-                : Results.Ok(response);
+            var participant = registry.FindByCode(request.Code);
+            return participant is null
+                ? Results.Unauthorized()
+                : Results.Ok(ParticipantSessionResponse.From(participant, scores.GetScore(participant)));
         });
 
         group.MapGet("/{id}", (string id, ParticipantRegistry registry, ScoreService scores) =>
@@ -34,12 +24,12 @@ public static class ParticipantEndpoints
             var participant = registry.Find(id);
             return participant is null
                 ? Results.NotFound()
-                : Results.Ok(ParticipantResponse.From(participant, scores.GetScore(participant)));
+                : Results.Ok(ParticipantSessionResponse.From(participant, scores.GetScore(participant)));
         });
 
         group.MapGet("/", (ParticipantRegistry registry, ScoreService scores) =>
             Results.Ok(registry.List()
-                .Select(participant => ParticipantResponse.From(participant, scores.GetScore(participant)))
+                .Select(participant => LeaderboardParticipantResponse.From(participant, scores.GetScore(participant)))
                 .OrderByDescending(participant => participant.Score)
                 .ThenBy(participant => participant.DisplayName, StringComparer.CurrentCultureIgnoreCase)));
 
@@ -47,10 +37,16 @@ public static class ParticipantEndpoints
     }
 }
 
-public sealed record RegisterParticipantRequest(string? DisplayName);
+public sealed record ParticipantLoginRequest(string? Code);
 
-public sealed record ParticipantResponse(string Id, string DisplayName, int Score)
+public sealed record ParticipantSessionResponse(string Id, string DisplayName, int Score, string Clue)
 {
-    public static ParticipantResponse From(Participant participant, int score) =>
+    public static ParticipantSessionResponse From(Participant participant, int score) =>
+        new(participant.Id, participant.DisplayName, score, participant.Clue);
+}
+
+public sealed record LeaderboardParticipantResponse(string Id, string DisplayName, int Score)
+{
+    public static LeaderboardParticipantResponse From(Participant participant, int score) =>
         new(participant.Id, participant.DisplayName, score);
 }

@@ -30,12 +30,15 @@ export const api = {
     return response.json();
   },
   signOutAdmin() { return request("/api/admin-session", { method: "DELETE" }); },
-  registerParticipant(displayName) {
-    return request("/api/participants/register", {
+  async loginParticipant(code) {
+    const response = await fetch("/api/participants/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ displayName })
+      body: JSON.stringify({ code })
     });
+    if (response.status === 401) throw new Error("Koden stämmer inte. Kontrollera kortet och försök igen.");
+    if (!response.ok) throw new Error(`Servern svarade ${response.status}.`);
+    return response.json();
   },
   getParticipant(id) { return request(`/api/participants/${encodeURIComponent(id)}`); },
   listLeaderboard() { return request("/api/participants"); },
@@ -52,6 +55,21 @@ export const api = {
       });
   },
   listParticipants() { return request("/api/admin/participants"); },
+  listPartyTables() { return request("/api/admin/party-tables"); },
+  createParticipant(displayName, loginCode, clue, tableId) {
+    return request("/api/admin/participants", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ displayName, loginCode, clue, tableId })
+    });
+  },
+  updateParticipant(id, displayName, loginCode, clue, tableId) {
+    return request(`/api/admin/participants/${encodeURIComponent(id)}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ displayName, loginCode, clue, tableId })
+    });
+  },
   deleteParticipant(id) {
     return request(`/api/admin/participants/${encodeURIComponent(id)}`, { method: "DELETE" });
   },

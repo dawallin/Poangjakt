@@ -29,6 +29,9 @@ public sealed class TableParticipantRepository(AzureStorageClients storage) : IP
         var entity = new TableEntity(PartitionKey, participant.Id)
         {
             ["DisplayName"] = participant.DisplayName,
+            ["LoginCode"] = participant.LoginCode,
+            ["Clue"] = participant.Clue,
+            ["TableId"] = participant.TableId,
             ["Score"] = participant.Score,
             ["CreatedAt"] = participant.CreatedAt,
             ["UpdatedAt"] = participant.UpdatedAt
@@ -46,6 +49,9 @@ public sealed class TableParticipantRepository(AzureStorageClients storage) : IP
     private static Participant ToParticipant(TableEntity entity) => new(
         entity.RowKey,
         entity.GetString("DisplayName") ?? "Okänd deltagare",
+        entity.GetString("LoginCode") ?? "",
+        entity.GetString("Clue") ?? "",
+        entity.GetString("TableId") ?? "",
         entity.GetInt32("Score") ?? 0,
         entity.GetDateTimeOffset("CreatedAt") ?? entity.Timestamp ?? DateTimeOffset.UtcNow,
         entity.GetDateTimeOffset("UpdatedAt") ?? entity.Timestamp ?? DateTimeOffset.UtcNow);

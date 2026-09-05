@@ -18,13 +18,14 @@
     <section id="registration-view" class="view centered-view" hidden>
       <p class="eyebrow">50-årsfest</p>
       <h1>Poängjakten</h1>
-      <p class="intro">Skriv ditt namn för att kliva in. Här samlar du poäng tillsammans med resten av festen.</p>
+      <p class="intro">Skriv koden från ditt kort för att kliva in.</p>
       <form id="registration-form" class="registration-card">
-        <label for="display-name">Vad heter du?</label>
-        <input id="display-name" name="displayName" type="text" minlength="2" maxlength="50"
-               autocomplete="name" enterkeyhint="go" required>
+        <label for="login-code">Din kod</label>
+        <input id="login-code" name="loginCode" type="text" minlength="3" maxlength="20"
+               autocomplete="one-time-code" autocapitalize="none" spellcheck="false"
+               enterkeyhint="go" required>
         <p id="registration-error" class="form-error" role="alert" hidden></p>
-        <button type="submit" class="primary-button">Nu kör vi</button>
+        <button type="submit" class="primary-button">Logga in</button>
       </form>
     </section>
 
@@ -38,6 +39,11 @@
           <strong id="score">0</strong><span>poäng</span>
         </div>
       </header>
+
+      <section class="clue-card participant-only" aria-labelledby="clue-heading">
+        <p id="clue-heading" class="clue-label">Din ledtråd</p>
+        <strong id="participant-clue">–</strong>
+      </section>
 
       <div class="tile-grid" aria-label="Appens funktioner">
         <button id="open-challenges" class="menu-tile tile-orange tile-wide" type="button">
@@ -58,7 +64,7 @@
         </button>
         <button class="menu-tile tile-navy" type="button" data-feature="table">
           <span class="tile-symbol" aria-hidden="true">●</span>
-          <span class="menu-title">Mitt bord</span><span class="menu-caption">Inte valt ännu</span>
+          <span class="menu-title">Hitta ditt bord</span><span class="menu-caption">Lös din ledtråd</span>
         </button>
         <button id="open-admin-users" class="menu-tile tile-admin tile-wide admin-only" type="button" hidden>
           <span class="tile-symbol" aria-hidden="true">♟</span>
@@ -158,10 +164,30 @@
 
     <section id="admin-users-view" class="view" hidden>
       <button class="back-button close-admin" type="button">← Tillbaka</button>
-      <p class="eyebrow">Administration · testläge</p>
+      <p class="eyebrow">Administration</p>
       <h1 class="section-heading">Deltagare</h1>
-      <p class="intro">Radera testanvändare från både appens minne och Table Storage.</p>
-      <p id="admin-error" class="form-error" role="alert" hidden></p>
+      <p class="intro">Lägg till deltagare och hantera deras kod, ledtråd och bord.</p>
+
+      <form id="participant-form" class="participant-form">
+        <input id="participant-id" type="hidden">
+        <label for="participant-name">Namn</label>
+        <input id="participant-name" type="text" minlength="2" maxlength="80" required>
+        <label for="participant-code">Kod</label>
+        <input id="participant-code" class="code-input" type="text" minlength="3" maxlength="20"
+               autocapitalize="characters" spellcheck="false" required>
+        <label for="participant-clue-input">Ledtråd</label>
+        <textarea id="participant-clue-input" rows="3" minlength="2" maxlength="240" required></textarea>
+        <label for="participant-table">Bord</label>
+        <select id="participant-table" required>
+          <option value="">Välj bord</option>
+        </select>
+        <p id="admin-error" class="form-error" role="alert" hidden></p>
+        <div class="form-actions">
+          <button id="save-participant" type="submit" class="primary-button">Lägg till deltagare</button>
+          <button id="cancel-participant-edit" type="button" class="secondary-button" hidden>Avbryt</button>
+        </div>
+      </form>
+
       <div id="participant-list" class="participant-list" aria-live="polite">
         <p class="muted">Hämtar deltagare…</p>
       </div>

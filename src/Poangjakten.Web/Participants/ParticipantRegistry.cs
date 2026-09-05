@@ -8,7 +8,7 @@ public sealed partial class ParticipantRegistry(
     ILogger<ParticipantRegistry> logger) : IHostedService
 {
     private readonly ConcurrentDictionary<string, Participant> _participants = new(StringComparer.Ordinal);
-    private readonly ConcurrentDictionary<string, string> _idsByName = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, string> _idsByCode = new(StringComparer.OrdinalIgnoreCase);
     private readonly SemaphoreSlim _mutationLock = new(1, 1);
 
     public async Task StartAsync(CancellationToken cancellationToken)
@@ -17,7 +17,11 @@ public sealed partial class ParticipantRegistry(
         foreach (var participant in participants)
         {
             _participants[participant.Id] = participant;
-            _idsByName.TryAdd(participant.DisplayName, participant.Id);
+            if (!string.IsNullOrWhiteSpace(participant.LoginCode) &&
+                !_idsByCode.TryAdd(participant.LoginCode, participant.Id))
+            {
+                logger.LogWarning("Participant {ParticipantId} has a duplicate login code and cannot log in", participant.Id);
+            }
         }
 
         logger.LogInformation("Loaded {ParticipantCount} participants into memory", participants.Count);
@@ -27,44 +31,105 @@ public sealed partial class ParticipantRegistry(
 
     public Participant? Find(string id) => _participants.GetValueOrDefault(id);
 
+    public Participant? FindByCode(string? requestedCode)
+    {
+        var code = NormalizeCode(requestedCode);
+        return code is not null &&
+               _idsByCode.TryGetValue(code, out var id) &&
+               _participants.TryGetValue(id, out var participant)
+            ? participant
+            : null;
+    }
+
     public IReadOnlyList<Participant> List() => _participants.Values
-        .OrderByDescending(participant => participant.Score)
+        .OrderBy(participant => PartyTables.Find(participant.TableId)?.Number ?? int.MaxValue)
         .ThenBy(participant => participant.DisplayName, StringComparer.CurrentCultureIgnoreCase)
         .ToArray();
 
-    public async Task<RegistrationResult> RegisterAsync(string? requestedName, CancellationToken cancellationToken)
+    public async Task<ParticipantMutationResult> CreateAsync(
+        string? requestedName,
+        string? requestedCode,
+        string? requestedClue,
+        string? requestedTableId,
+        CancellationToken cancellationToken)
     {
-        var displayName = NormalizeName(requestedName);
-        if (displayName is null)
-        {
-            return RegistrationResult.Invalid("Skriv ett namn med 2–50 tecken.");
-        }
+        var validation = Validate(requestedName, requestedCode, requestedClue, requestedTableId);
+        if (validation.Error is not null) return ParticipantMutationResult.Invalid(validation.Error);
 
         await _mutationLock.WaitAsync(cancellationToken);
         try
         {
-            if (_idsByName.TryGetValue(displayName, out var existingId) &&
-                _participants.TryGetValue(existingId, out var existing))
+            if (_idsByCode.ContainsKey(validation.Code!))
             {
-                return RegistrationResult.Existing(existing);
+                return ParticipantMutationResult.Conflict("Koden används redan av en annan deltagare.");
             }
 
             var now = DateTimeOffset.UtcNow;
             var participant = new Participant(
                 Guid.NewGuid().ToString("N"),
-                displayName,
+                validation.Name!,
+                validation.Code!,
+                validation.Clue!,
+                validation.TableId!,
                 0,
                 now,
                 now);
 
-            // Persist first so the in-memory state can never contain a participant
-            // that would disappear after an application restart.
             await repository.SaveAsync(participant, cancellationToken);
             _participants[participant.Id] = participant;
-            _idsByName[participant.DisplayName] = participant.Id;
+            _idsByCode[participant.LoginCode] = participant.Id;
+            logger.LogInformation("Created participant {ParticipantId}", participant.Id);
+            return ParticipantMutationResult.Success(participant);
+        }
+        finally
+        {
+            _mutationLock.Release();
+        }
+    }
 
-            logger.LogInformation("Registered participant {ParticipantId}", participant.Id);
-            return RegistrationResult.Created(participant);
+    public async Task<ParticipantMutationResult> UpdateAsync(
+        string id,
+        string? requestedName,
+        string? requestedCode,
+        string? requestedClue,
+        string? requestedTableId,
+        CancellationToken cancellationToken)
+    {
+        var validation = Validate(requestedName, requestedCode, requestedClue, requestedTableId);
+        if (validation.Error is not null) return ParticipantMutationResult.Invalid(validation.Error);
+
+        await _mutationLock.WaitAsync(cancellationToken);
+        try
+        {
+            if (!_participants.TryGetValue(id, out var existing))
+            {
+                return ParticipantMutationResult.NotFound();
+            }
+
+            if (_idsByCode.TryGetValue(validation.Code!, out var codeOwnerId) && codeOwnerId != id)
+            {
+                return ParticipantMutationResult.Conflict("Koden används redan av en annan deltagare.");
+            }
+
+            var participant = existing with
+            {
+                DisplayName = validation.Name!,
+                LoginCode = validation.Code!,
+                Clue = validation.Clue!,
+                TableId = validation.TableId!,
+                UpdatedAt = DateTimeOffset.UtcNow
+            };
+
+            await repository.SaveAsync(participant, cancellationToken);
+            _participants[id] = participant;
+            if (!string.Equals(existing.LoginCode, participant.LoginCode, StringComparison.OrdinalIgnoreCase))
+            {
+                if (!string.IsNullOrWhiteSpace(existing.LoginCode)) _idsByCode.TryRemove(existing.LoginCode, out _);
+                _idsByCode[participant.LoginCode] = id;
+            }
+
+            logger.LogInformation("Updated participant {ParticipantId}", id);
+            return ParticipantMutationResult.Success(participant);
         }
         finally
         {
@@ -77,16 +142,11 @@ public sealed partial class ParticipantRegistry(
         await _mutationLock.WaitAsync(cancellationToken);
         try
         {
-            if (!_participants.TryGetValue(id, out var participant))
-            {
-                return false;
-            }
+            if (!_participants.TryGetValue(id, out var participant)) return false;
 
-            // Delete the durable state first. If Azure rejects the operation,
-            // the participant remains available in memory and can be retried.
             await repository.DeleteAsync(id, cancellationToken);
             _participants.TryRemove(id, out _);
-            _idsByName.TryRemove(participant.DisplayName, out _);
+            if (!string.IsNullOrWhiteSpace(participant.LoginCode)) _idsByCode.TryRemove(participant.LoginCode, out _);
             logger.LogInformation("Removed participant {ParticipantId}", id);
             return true;
         }
@@ -96,19 +156,61 @@ public sealed partial class ParticipantRegistry(
         }
     }
 
-    private static string? NormalizeName(string? value)
+    private static ParticipantValidation Validate(
+        string? requestedName,
+        string? requestedCode,
+        string? requestedClue,
+        string? requestedTableId)
     {
-        var normalized = Whitespace().Replace(value?.Trim() ?? "", " ");
-        return normalized.Length is >= 2 and <= 50 ? normalized : null;
+        var name = NormalizeText(requestedName);
+        if (name.Length is < 2 or > 80)
+            return ParticipantValidation.Invalid("Namnet måste vara 2–80 tecken.");
+
+        var code = NormalizeCode(requestedCode);
+        if (code is null)
+            return ParticipantValidation.Invalid("Koden måste vara 3–20 tecken och bara innehålla bokstäver, siffror eller bindestreck.");
+
+        var clue = NormalizeText(requestedClue);
+        if (clue.Length is < 2 or > 240)
+            return ParticipantValidation.Invalid("Ledtråden måste vara 2–240 tecken.");
+
+        var tableId = requestedTableId?.Trim();
+        if (PartyTables.Find(tableId) is null)
+            return ParticipantValidation.Invalid("Välj ett av de nio fördefinierade borden.");
+
+        return new(name, code, clue, tableId!, null);
+    }
+
+    private static string NormalizeText(string? value) => Whitespace().Replace(value?.Trim() ?? "", " ");
+
+    private static string? NormalizeCode(string? value)
+    {
+        var normalized = value?.Trim().ToUpperInvariant() ?? "";
+        return normalized.Length is >= 3 and <= 20 && CodeCharacters().IsMatch(normalized)
+            ? normalized
+            : null;
     }
 
     [GeneratedRegex(@"\s+")]
     private static partial Regex Whitespace();
+
+    [GeneratedRegex(@"^[A-Z0-9-]+$")]
+    private static partial Regex CodeCharacters();
 }
 
-public sealed record RegistrationResult(Participant? Participant, bool WasCreated, string? Error)
+internal sealed record ParticipantValidation(string? Name, string? Code, string? Clue, string? TableId, string? Error)
 {
-    public static RegistrationResult Created(Participant participant) => new(participant, true, null);
-    public static RegistrationResult Existing(Participant participant) => new(participant, false, null);
-    public static RegistrationResult Invalid(string error) => new(null, false, error);
+    public static ParticipantValidation Invalid(string error) => new(null, null, null, null, error);
+}
+
+public sealed record ParticipantMutationResult(
+    Participant? Participant,
+    string? Error,
+    bool WasConflict,
+    bool WasNotFound)
+{
+    public static ParticipantMutationResult Success(Participant participant) => new(participant, null, false, false);
+    public static ParticipantMutationResult Invalid(string error) => new(null, error, false, false);
+    public static ParticipantMutationResult Conflict(string error) => new(null, error, true, false);
+    public static ParticipantMutationResult NotFound() => new(null, null, false, true);
 }

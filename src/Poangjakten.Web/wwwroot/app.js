@@ -15,9 +15,10 @@ const views = {
   adminSongs: document.querySelector("#admin-songs-view")
 };
 const registrationForm = document.querySelector("#registration-form");
-const displayNameInput = document.querySelector("#display-name");
+const loginCodeInput = document.querySelector("#login-code");
 const registrationError = document.querySelector("#registration-error");
 const welcomeHeading = document.querySelector("#welcome-heading");
+const participantClue = document.querySelector("#participant-clue");
 const score = document.querySelector("#score");
 const scoreBadge = document.querySelector("#score-badge");
 const challengeScore = document.querySelector("#challenge-score");
@@ -30,6 +31,14 @@ const testStorageButton = document.querySelector("#test-storage");
 const changeParticipantButton = document.querySelector("#change-participant");
 const participantList = document.querySelector("#participant-list");
 const adminError = document.querySelector("#admin-error");
+const participantForm = document.querySelector("#participant-form");
+const participantId = document.querySelector("#participant-id");
+const participantName = document.querySelector("#participant-name");
+const participantCode = document.querySelector("#participant-code");
+const participantClueInput = document.querySelector("#participant-clue-input");
+const participantTable = document.querySelector("#participant-table");
+const saveParticipantButton = document.querySelector("#save-participant");
+const cancelParticipantEditButton = document.querySelector("#cancel-participant-edit");
 const challengeForm = document.querySelector("#challenge-form");
 const challengeId = document.querySelector("#challenge-id");
 const challengeDescription = document.querySelector("#challenge-description");
@@ -72,6 +81,7 @@ let toastTimer;
 let currentParticipantId = null;
 let currentIsAdmin = false;
 let currentSong = null;
+let partyTables = [];
 
 function showView(name) {
   Object.entries(views).forEach(([viewName, element]) => { element.hidden = viewName !== name; });
@@ -82,6 +92,7 @@ function showParticipant(participant) {
   currentParticipantId = participant.id;
   currentIsAdmin = false;
   welcomeHeading.textContent = `Hej, ${participant.displayName}!`;
+  participantClue.textContent = participant.clue;
   score.textContent = participant.score;
   scoreBadge.hidden = false;
   document.querySelectorAll(".admin-only").forEach(element => { element.hidden = true; });
@@ -113,7 +124,7 @@ async function restoreParticipant() {
   const participantId = localStorage.getItem(participantKey);
   if (!participantId) {
     showView("registration");
-    displayNameInput.focus();
+    loginCodeInput.focus();
     return;
   }
 
@@ -122,7 +133,7 @@ async function restoreParticipant() {
   } catch {
     localStorage.removeItem(participantKey);
     showView("registration");
-    displayNameInput.focus();
+    loginCodeInput.focus();
   }
 }
 
@@ -132,7 +143,8 @@ registrationForm.addEventListener("submit", async event => {
   const submitButton = registrationForm.querySelector("button[type=submit]");
   submitButton.disabled = true;
   try {
-    const adminSession = await api.signInAdmin(displayNameInput.value);
+    const code = loginCodeInput.value;
+    const adminSession = await api.signInAdmin(code);
     if (adminSession) {
       localStorage.removeItem(participantKey);
       registrationForm.reset();
@@ -140,7 +152,7 @@ registrationForm.addEventListener("submit", async event => {
       return;
     }
 
-    const participant = await api.registerParticipant(displayNameInput.value);
+    const participant = await api.loginParticipant(code);
     localStorage.setItem(participantKey, participant.id);
     showParticipant(participant);
   } catch (error) {
@@ -156,7 +168,7 @@ changeParticipantButton.addEventListener("click", async () => {
   localStorage.removeItem(participantKey);
   registrationForm.reset();
   showView("registration");
-  displayNameInput.focus();
+  loginCodeInput.focus();
 });
 
 document.querySelectorAll("[data-feature]").forEach(tile => {
@@ -496,6 +508,8 @@ function showToast(message) {
 
 document.querySelector("#open-admin-users").addEventListener("click", async () => {
   showView("adminUsers");
+  resetParticipantForm();
+  await loadPartyTables();
   await loadParticipants();
 });
 
@@ -684,6 +698,17 @@ async function removeSong(song, button) {
   }
 }
 
+async function loadPartyTables() {
+  if (partyTables.length > 0) return;
+  partyTables = await api.listPartyTables();
+  partyTables.forEach(table => {
+    const option = document.createElement("option");
+    option.value = table.id;
+    option.textContent = table.displayName;
+    participantTable.append(option);
+  });
+}
+
 async function loadParticipants() {
   participantList.innerHTML = '<p class="muted">Hämtar deltagare…</p>';
   adminError.hidden = true;
@@ -694,6 +719,62 @@ async function loadParticipants() {
     adminError.textContent = error.message;
     adminError.hidden = false;
   }
+}
+
+participantForm.addEventListener("submit", async event => {
+  event.preventDefault();
+  adminError.hidden = true;
+  saveParticipantButton.disabled = true;
+  try {
+    if (participantId.value) {
+      await api.updateParticipant(
+        participantId.value,
+        participantName.value,
+        participantCode.value,
+        participantClueInput.value,
+        participantTable.value);
+    } else {
+      await api.createParticipant(
+        participantName.value,
+        participantCode.value,
+        participantClueInput.value,
+        participantTable.value);
+    }
+    resetParticipantForm();
+    await loadParticipants();
+  } catch (error) {
+    adminError.textContent = error.message;
+    adminError.hidden = false;
+  } finally {
+    saveParticipantButton.disabled = false;
+  }
+});
+
+participantCode.addEventListener("input", () => {
+  participantCode.value = participantCode.value.toUpperCase();
+});
+
+cancelParticipantEditButton.addEventListener("click", resetParticipantForm);
+
+function beginParticipantEdit(participant) {
+  participantId.value = participant.id;
+  participantName.value = participant.displayName;
+  participantCode.value = participant.loginCode;
+  participantClueInput.value = participant.clue;
+  participantTable.value = participant.tableId;
+  saveParticipantButton.textContent = "Spara ändringar";
+  cancelParticipantEditButton.hidden = false;
+  adminError.hidden = true;
+  participantForm.scrollIntoView({ behavior: "smooth", block: "start" });
+  participantName.focus();
+}
+
+function resetParticipantForm() {
+  participantForm.reset();
+  participantId.value = "";
+  saveParticipantButton.textContent = "Lägg till deltagare";
+  cancelParticipantEditButton.hidden = true;
+  adminError.hidden = true;
 }
 
 async function loadPlayerChallenges() {
@@ -775,26 +856,61 @@ function renderParticipants(participants) {
     return;
   }
 
-  participants.forEach(participant => {
-    const row = document.createElement("article");
-    row.className = "participant-row";
+  const groups = participants.reduce((result, participant) => {
+    const group = result.get(participant.tableName) ?? [];
+    group.push(participant);
+    result.set(participant.tableName, group);
+    return result;
+  }, new Map());
 
-    const info = document.createElement("div");
-    const name = document.createElement("p");
-    name.className = "participant-name";
-    name.textContent = participant.displayName;
-    const participantScore = document.createElement("p");
-    participantScore.className = "participant-score";
-    participantScore.textContent = `${participant.score} poäng`;
-    info.append(name, participantScore);
+  groups.forEach((tableParticipants, tableName) => {
+    const section = document.createElement("section");
+    const heading = document.createElement("h2");
+    heading.className = "participant-group-title";
+    heading.textContent = `${tableName} · ${tableParticipants.length}`;
+    const rows = document.createElement("div");
+    rows.className = "participant-group-rows";
 
-    const remove = document.createElement("button");
-    remove.type = "button";
-    remove.className = "danger-button";
-    remove.textContent = "Ta bort";
-    remove.addEventListener("click", () => removeParticipant(participant, remove));
-    row.append(info, remove);
-    participantList.append(row);
+    tableParticipants.forEach(participant => {
+      const row = document.createElement("article");
+      row.className = "participant-row";
+
+      const info = document.createElement("div");
+      const name = document.createElement("p");
+      name.className = "participant-name";
+      name.textContent = participant.displayName;
+      const code = document.createElement("p");
+      code.className = "participant-code";
+      code.textContent = participant.loginCode ? `Kod: ${participant.loginCode}` : "Kod saknas";
+      const clue = document.createElement("p");
+      clue.className = "participant-clue";
+      clue.textContent = participant.clue || "Ledtråd saknas";
+      const participantScore = document.createElement("p");
+      participantScore.className = "participant-score";
+      participantScore.textContent = `${participant.score} poäng`;
+      info.append(name, code, clue, participantScore);
+
+      const actions = document.createElement("div");
+      actions.className = "icon-actions";
+      const edit = document.createElement("button");
+      edit.type = "button";
+      edit.className = "icon-button";
+      edit.textContent = "✎";
+      edit.setAttribute("aria-label", `Ändra ${participant.displayName}`);
+      edit.addEventListener("click", () => beginParticipantEdit(participant));
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "icon-button danger";
+      remove.textContent = "🗑";
+      remove.setAttribute("aria-label", `Ta bort ${participant.displayName}`);
+      remove.addEventListener("click", () => removeParticipant(participant, remove));
+      actions.append(edit, remove);
+      row.append(info, actions);
+      rows.append(row);
+    });
+
+    section.append(heading, rows);
+    participantList.append(section);
   });
 }
 
@@ -807,6 +923,7 @@ async function removeParticipant(participant, button) {
     if (localStorage.getItem(participantKey) === participant.id) {
       localStorage.removeItem(participantKey);
     }
+    if (participantId.value === participant.id) resetParticipantForm();
     await loadParticipants();
   } catch (error) {
     adminError.textContent = error.message;

@@ -15,7 +15,7 @@ body {
               linear-gradient(160deg, #111c33 0%, #08111f 65%);
 }
 
-button, input, textarea { font: inherit; }
+button, input, textarea, select { font: inherit; }
 button { cursor: pointer; }
 
 .shell {
@@ -130,6 +130,18 @@ button:disabled { opacity: .65; cursor: wait; }
 
 .score-badge strong { font-size: 1.8rem; line-height: 1; }
 .score-badge span { margin-top: .25rem; color: #aebbd0; font-size: .72rem; font-weight: 750; text-transform: uppercase; }
+
+.clue-card {
+  display: grid;
+  gap: .35rem;
+  margin: 0 0 1.2rem;
+  padding: 1rem;
+  border: 1px solid rgba(251, 146, 60, .5);
+  border-radius: .35rem;
+  background: rgba(124, 45, 18, .34);
+}
+.clue-label { margin: 0; color: #fdba74; font-size: .72rem; font-weight: 850; letter-spacing: .1em; text-transform: uppercase; }
+.clue-card strong { font-size: 1.15rem; line-height: 1.4; }
 
 .tile-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .7rem; }
 
@@ -299,13 +311,15 @@ button:disabled { opacity: .65; cursor: wait; }
   line-height: 1;
 }
 
-.participant-list { display: grid; gap: .65rem; }
+.participant-list { display: grid; gap: 1.6rem; }
+.participant-group-title { margin: 0 0 .6rem; color: #fb923c; font-size: 1.25rem; }
+.participant-group-rows { display: grid; gap: .55rem; }
 
 .participant-row {
-  display: flex;
-  gap: 1rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: .7rem;
   align-items: center;
-  justify-content: space-between;
   padding: .9rem;
   border: 1px solid rgba(255, 255, 255, .12);
   border-radius: .35rem;
@@ -313,10 +327,13 @@ button:disabled { opacity: .65; cursor: wait; }
 }
 
 .participant-name { margin: 0; font-size: 1.05rem; font-weight: 800; }
+.participant-code { margin: .3rem 0 0; color: #fdba74; font-size: .86rem; font-weight: 800; letter-spacing: .04em; }
+.participant-clue { margin: .3rem 0 0; color: #cbd5e1; font-size: .9rem; line-height: 1.35; }
 .participant-score { margin: .2rem 0 0; color: #94a3b8; font-size: .82rem; }
 .challenge-page-header { display: flex; gap: 1rem; align-items: flex-start; justify-content: space-between; }
 
-.challenge-form {
+.challenge-form,
+.participant-form {
   display: grid;
   gap: .65rem;
   margin-bottom: 2rem;
@@ -336,9 +353,12 @@ button:disabled { opacity: .65; cursor: wait; }
   background: rgba(15, 29, 51, .82);
 }
 
-.challenge-form label, .song-form label { font-size: .78rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.challenge-form label, .participant-form label, .song-form label { font-size: .78rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
 .challenge-form textarea,
 .challenge-form input[type="number"],
+.participant-form textarea,
+.participant-form input[type="text"],
+.participant-form select,
 .song-form textarea,
 .song-form input[type="text"],
 .song-form input[type="number"],
@@ -353,10 +373,14 @@ button:disabled { opacity: .65; cursor: wait; }
 }
 .challenge-form textarea:focus,
 .challenge-form input:focus,
+.participant-form textarea:focus,
+.participant-form input:focus,
+.participant-form select:focus,
 .song-form textarea:focus,
 .song-form input:focus { border-color: #fb923c; }
-.challenge-form textarea, .song-form textarea { resize: vertical; }
+.challenge-form textarea, .participant-form textarea, .song-form textarea { resize: vertical; }
 .challenge-form input[type="number"], .song-form input[type="number"] { max-width: 8rem; }
+.code-input { text-transform: uppercase; }
 .optional { color: #94a3b8; font-weight: 600; letter-spacing: 0; text-transform: none; }
 .form-actions { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: .35rem; }
 
